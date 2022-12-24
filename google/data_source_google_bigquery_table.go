@@ -26,7 +26,7 @@ func dataSourceGoogleBigqueryTable() *schema.Resource {
 			},
 			"query": {
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 			},
 			"schema": {
 				Type:     schema.TypeList,
