@@ -777,6 +777,7 @@ func Provider() *schema.Provider {
 			"google_app_engine_default_service_account":           dataSourceGoogleAppEngineDefaultServiceAccount(),
 			"google_billing_account":                              dataSourceGoogleBillingAccount(),
 			"google_bigquery_default_service_account":             dataSourceGoogleBigqueryDefaultServiceAccount(),
+			"google_bigquery_table":                               dataSourceGoogleBigqueryTable(),
 			"google_client_config":                                dataSourceGoogleClientConfig(),
 			"google_client_openid_userinfo":                       dataSourceGoogleClientOpenIDUserinfo(),
 			"google_cloudfunctions_function":                      dataSourceGoogleCloudFunctionsFunction(),
