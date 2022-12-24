@@ -328,7 +328,7 @@ The following arguments are supported:
 
 * `persistence_config` -
   (Optional)
-  Maintenance policy for an instance.
+  Persistence configuration for an instance.
   Structure is [documented below](#nested_persistence_config).
 
 * `maintenance_policy` -
@@ -418,7 +418,7 @@ The following arguments are supported:
   Possible values are `DISABLED` and `RDB`.
 
 * `rdb_snapshot_period` -
-  (Required)
+  (Optional)
   Optional. Available snapshot periods for scheduling.
   - ONE_HOUR:	Snapshot every 1 hour.
   - SIX_HOURS:	Snapshot every 6 hours.
@@ -628,4 +628,4 @@ $ terraform import google_redis_instance.default {{name}}
 
 ## User Project Overrides
 
-This resource supports [User Project Overrides](https://www.terraform.io/docs/providers/google/guides/provider_reference.html#user_project_override).
+This resource supports [User Project Overrides](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference#user_project_override).

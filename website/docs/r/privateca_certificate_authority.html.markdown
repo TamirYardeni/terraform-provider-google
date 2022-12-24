@@ -105,8 +105,6 @@ resource "google_privateca_certificate_authority" "root-ca" {
   pool = "ca-pool"
   certificate_authority_id = "my-certificate-authority-root"
   location = "us-central1"
-  deletion_protection = false
-  ignore_active_certificates_on_deletion = true
   config {
     subject_config {
       subject {
@@ -137,6 +135,11 @@ resource "google_privateca_certificate_authority" "root-ca" {
   key_spec {
     algorithm = "RSA_PKCS1_4096_SHA256"
   }
+
+  // Disable CA deletion related safe checks for easier cleanup.
+  deletion_protection                    = false
+  skip_grace_period                      = true
+  ignore_active_certificates_on_deletion = true
 }
 
 resource "google_privateca_certificate_authority" "default" {
@@ -563,6 +566,13 @@ The following arguments are supported:
   This field allows the CA to be deleted even if the CA has active certs. Active certs include both unrevoked and unexpired certs.
   Use with care. Defaults to `false`.
 
+* `skip_grace_period` -
+  (Optional)
+  If this flag is set, the Certificate Authority will be deleted as soon as
+  possible without a 30-day grace period where undeletion would have been
+  allowed. If you proceed, there will be no way to recover this CA.
+  Use with care. Defaults to `false`.
+
 * `type` -
   (Optional)
   The Type of this CertificateAuthority.
@@ -694,4 +704,4 @@ $ terraform import google_privateca_certificate_authority.default {{location}}/{
 
 ## User Project Overrides
 
-This resource supports [User Project Overrides](https://www.terraform.io/docs/providers/google/guides/provider_reference.html#user_project_override).
+This resource supports [User Project Overrides](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference#user_project_override).

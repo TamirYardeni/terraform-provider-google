@@ -85,6 +85,29 @@ resource "google_compute_http_health_check" "default" {
 }
 ```
 <div class = "oics-button" style="float: right; margin: 0 0 -15px">
+  <a href="https://console.cloud.google.com/cloudshell/open?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fterraform-google-modules%2Fdocs-examples.git&cloudshell_working_dir=backend_service_cache_include_http_headers&cloudshell_image=gcr.io%2Fgraphite-cloud-shell-images%2Fterraform%3Alatest&open_in_editor=main.tf&cloudshell_print=.%2Fmotd&cloudshell_tutorial=.%2Ftutorial.md" target="_blank">
+    <img alt="Open in Cloud Shell" src="//gstatic.com/cloudssh/images/open-btn.svg" style="max-height: 44px; margin: 32px auto; max-width: 100%;">
+  </a>
+</div>
+## Example Usage - Backend Service Cache Include Http Headers
+
+
+```hcl
+resource "google_compute_backend_service" "default" {
+  name          = "backend-service"
+  enable_cdn  = true
+  cdn_policy {
+    cache_mode = "USE_ORIGIN_HEADERS"
+    cache_key_policy {
+      include_host = true
+      include_protocol = true
+      include_query_string = true
+      include_http_headers = ["X-My-Header-Field"]
+    }
+  }
+}
+```
+<div class = "oics-button" style="float: right; margin: 0 0 -15px">
   <a href="https://console.cloud.google.com/cloudshell/open?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fterraform-google-modules%2Fdocs-examples.git&cloudshell_working_dir=backend_service_cache_include_named_cookies&cloudshell_image=gcr.io%2Fgraphite-cloud-shell-images%2Fterraform%3Alatest&open_in_editor=main.tf&cloudshell_print=.%2Fmotd&cloudshell_tutorial=.%2Ftutorial.md" target="_blank">
     <img alt="Open in Cloud Shell" src="//gstatic.com/cloudssh/images/open-btn.svg" style="max-height: 44px; margin: 32px auto; max-width: 100%;">
   </a>
@@ -308,6 +331,11 @@ The following arguments are supported:
   Settings controlling the volume of connections to a backend service. This field
   is applicable only when the load_balancing_scheme is set to INTERNAL_SELF_MANAGED.
   Structure is [documented below](#nested_circuit_breakers).
+
+* `compression_mode` -
+  (Optional)
+  Compress text responses using Brotli or gzip compression, based on the client's Accept-Encoding header.
+  Possible values are `AUTOMATIC` and `DISABLED`.
 
 * `consistent_hash` -
   (Optional)
@@ -749,6 +777,11 @@ The following arguments are supported:
   '&' and '=' will be percent encoded and not treated as
   delimiters.
 
+* `include_http_headers` -
+  (Optional)
+  Allows HTTP request headers (by name) to be used in the
+  cache key.
+
 * `include_named_cookies` -
   (Optional)
   Names of cookies to include in cache keys.
@@ -920,6 +953,9 @@ In addition to the arguments listed above, the following computed attributes are
 * `fingerprint` -
   Fingerprint of this resource. A hash of the contents stored in this
   object. This field is used in optimistic locking.
+
+* `generated_id` -
+  The unique identifier for the resource. This identifier is defined by the server.
 * `self_link` - The URI of the created resource.
 
 
@@ -945,4 +981,4 @@ $ terraform import google_compute_backend_service.default {{name}}
 
 ## User Project Overrides
 
-This resource supports [User Project Overrides](https://www.terraform.io/docs/providers/google/guides/provider_reference.html#user_project_override).
+This resource supports [User Project Overrides](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference#user_project_override).

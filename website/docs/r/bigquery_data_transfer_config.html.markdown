@@ -42,7 +42,7 @@ data "google_project" "project" {
 
 resource "google_project_iam_member" "permissions" {
   project = data.google_project.project.project_id
-  role   = "roles/iam.serviceAccountShortTermTokenMinter"
+  role   = "roles/iam.serviceAccountTokenCreator"
   member = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-bigquerydatatransfer.iam.gserviceaccount.com"
 }
 
@@ -234,4 +234,4 @@ $ terraform import google_bigquery_data_transfer_config.default {{name}}
 
 ## User Project Overrides
 
-This resource supports [User Project Overrides](https://www.terraform.io/docs/providers/google/guides/provider_reference.html#user_project_override).
+This resource supports [User Project Overrides](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference#user_project_override).

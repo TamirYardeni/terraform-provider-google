@@ -81,6 +81,11 @@ resource "google_cloudbuild_trigger" "build-trigger" {
       secret_env = ["MY_SECRET"]
     }
 
+    step {
+      name   = "ubuntu"
+      script = "echo hello" # using script field
+    }
+    
     source {
       storage_source {
         bucket = "mybucket"
@@ -496,8 +501,8 @@ The following arguments are supported:
 * `repo_type` -
   (Required)
   The type of the repo, since it may not be explicit from the repo field (e.g from a URL). 
-  Values can be UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, BITBUCKET
-  Possible values are `UNKNOWN`, `CLOUD_SOURCE_REPOSITORIES`, `GITHUB`, and `BITBUCKET`.
+  Values can be UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, BITBUCKET_SERVER
+  Possible values are `UNKNOWN`, `CLOUD_SOURCE_REPOSITORIES`, `GITHUB`, and `BITBUCKET_SERVER`.
 
 * `revision` -
   (Optional)
@@ -518,8 +523,8 @@ The following arguments are supported:
 * `repo_type` -
   (Required)
   The type of the repo, since it may not be explicit from the repo field (e.g from a URL).
-  Values can be UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, BITBUCKET
-  Possible values are `UNKNOWN`, `CLOUD_SOURCE_REPOSITORIES`, `GITHUB`, and `BITBUCKET`.
+  Values can be UNKNOWN, CLOUD_SOURCE_REPOSITORIES, GITHUB, BITBUCKET_SERVER
+  Possible values are `UNKNOWN`, `CLOUD_SOURCE_REPOSITORIES`, `GITHUB`, and `BITBUCKET_SERVER`.
 
 <a name="nested_trigger_template"></a>The `trigger_template` block supports:
 
@@ -908,6 +913,11 @@ The following arguments are supported:
   will start when all previous build steps in the `Build.Steps` list
   have completed successfully.
 
+* `script` -
+  (Optional)
+  A shell script to be executed in the step. 
+  When script is provided, the user cannot specify the entrypoint or args.
+
 
 <a name="nested_volumes"></a>The `volumes` block supports:
 
@@ -1099,4 +1109,4 @@ $ terraform import google_cloudbuild_trigger.default {{trigger_id}}
 
 ## User Project Overrides
 
-This resource supports [User Project Overrides](https://www.terraform.io/docs/providers/google/guides/provider_reference.html#user_project_override).
+This resource supports [User Project Overrides](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference#user_project_override).

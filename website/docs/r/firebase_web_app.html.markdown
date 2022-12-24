@@ -27,7 +27,7 @@ See [Provider Versions](https://terraform.io/docs/providers/google/guides/provid
 
 To get more information about WebApp, see:
 
-* [API documentation](https://firebase.google.com/docs/projects/api/reference/rest/v1beta1/projects.webApps)
+* [API documentation](https://firebase.google.com/docs/reference/firebase-management/rest/v1beta1/projects.webApps)
 * How-to Guides
     * [Official Documentation](https://firebase.google.com/)
 
@@ -52,6 +52,7 @@ resource "google_firebase_web_app" "basic" {
 	provider = google-beta
 	project = google_project.default.project_id
 	display_name = "Display Name Basic"
+	deletion_policy = "DELETE"
 
 	depends_on = [google_firebase_project.default]
 }
@@ -100,6 +101,10 @@ The following arguments are supported:
 * `project` - (Optional) The ID of the project in which the resource belongs.
     If it is not provided, the provider project is used.
 
+* `deletion_policy` - (Optional) Set to `ABANDON` to allow the WebApp to be untracked from terraform state
+rather than deleted upon `terraform destroy`. This is useful becaue the WebApp may be
+serving traffic. Set to `DELETE` to delete the WebApp. Default to `ABANDON`
+
 
 ## Attributes Reference
 
@@ -112,8 +117,11 @@ In addition to the arguments listed above, the following computed attributes are
   projects/projectId/webApps/appId
 
 * `app_id` -
-  Immutable. The globally unique, Firebase-assigned identifier of the App.
+  The globally unique, Firebase-assigned identifier of the App.
   This identifier should be treated as an opaque token, as the data format is not specified.
+
+* `app_urls` -
+  The URLs where the `WebApp` is hosted.
 
 
 ## Timeouts
@@ -138,4 +146,4 @@ $ terraform import google_firebase_web_app.default {{name}}
 
 ## User Project Overrides
 
-This resource supports [User Project Overrides](https://www.terraform.io/docs/providers/google/guides/provider_reference.html#user_project_override).
+This resource supports [User Project Overrides](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference#user_project_override).

@@ -242,7 +242,17 @@ When the load balancing scheme is INTERNAL, this field is not used.`,
 										Type:         schema.TypeBool,
 										Optional:     true,
 										Description:  `If true requests to different hosts will be cached separately.`,
-										AtLeastOneOf: []string{"cdn_policy.0.cache_key_policy.0.include_host", "cdn_policy.0.cache_key_policy.0.include_protocol", "cdn_policy.0.cache_key_policy.0.include_query_string", "cdn_policy.0.cache_key_policy.0.query_string_blacklist", "cdn_policy.0.cache_key_policy.0.query_string_whitelist", "cdn_policy.0.cache_key_policy.0.include_named_cookies"},
+										AtLeastOneOf: []string{"cdn_policy.0.cache_key_policy.0.include_host", "cdn_policy.0.cache_key_policy.0.include_protocol", "cdn_policy.0.cache_key_policy.0.include_query_string", "cdn_policy.0.cache_key_policy.0.query_string_blacklist", "cdn_policy.0.cache_key_policy.0.query_string_whitelist", "cdn_policy.0.cache_key_policy.0.include_http_headers", "cdn_policy.0.cache_key_policy.0.include_named_cookies"},
+									},
+									"include_http_headers": {
+										Type:     schema.TypeList,
+										Optional: true,
+										Description: `Allows HTTP request headers (by name) to be used in the
+cache key.`,
+										Elem: &schema.Schema{
+											Type: schema.TypeString,
+										},
+										AtLeastOneOf: []string{"cdn_policy.0.cache_key_policy.0.include_host", "cdn_policy.0.cache_key_policy.0.include_protocol", "cdn_policy.0.cache_key_policy.0.include_query_string", "cdn_policy.0.cache_key_policy.0.query_string_blacklist", "cdn_policy.0.cache_key_policy.0.query_string_whitelist", "cdn_policy.0.cache_key_policy.0.include_http_headers", "cdn_policy.0.cache_key_policy.0.include_named_cookies"},
 									},
 									"include_named_cookies": {
 										Type:        schema.TypeList,
@@ -251,13 +261,13 @@ When the load balancing scheme is INTERNAL, this field is not used.`,
 										Elem: &schema.Schema{
 											Type: schema.TypeString,
 										},
-										AtLeastOneOf: []string{"cdn_policy.0.cache_key_policy.0.include_host", "cdn_policy.0.cache_key_policy.0.include_protocol", "cdn_policy.0.cache_key_policy.0.include_query_string", "cdn_policy.0.cache_key_policy.0.query_string_blacklist", "cdn_policy.0.cache_key_policy.0.query_string_whitelist", "cdn_policy.0.cache_key_policy.0.include_named_cookies"},
+										AtLeastOneOf: []string{"cdn_policy.0.cache_key_policy.0.include_host", "cdn_policy.0.cache_key_policy.0.include_protocol", "cdn_policy.0.cache_key_policy.0.include_query_string", "cdn_policy.0.cache_key_policy.0.query_string_blacklist", "cdn_policy.0.cache_key_policy.0.query_string_whitelist", "cdn_policy.0.cache_key_policy.0.include_http_headers", "cdn_policy.0.cache_key_policy.0.include_named_cookies"},
 									},
 									"include_protocol": {
 										Type:         schema.TypeBool,
 										Optional:     true,
 										Description:  `If true, http and https requests will be cached separately.`,
-										AtLeastOneOf: []string{"cdn_policy.0.cache_key_policy.0.include_host", "cdn_policy.0.cache_key_policy.0.include_protocol", "cdn_policy.0.cache_key_policy.0.include_query_string", "cdn_policy.0.cache_key_policy.0.query_string_blacklist", "cdn_policy.0.cache_key_policy.0.query_string_whitelist", "cdn_policy.0.cache_key_policy.0.include_named_cookies"},
+										AtLeastOneOf: []string{"cdn_policy.0.cache_key_policy.0.include_host", "cdn_policy.0.cache_key_policy.0.include_protocol", "cdn_policy.0.cache_key_policy.0.include_query_string", "cdn_policy.0.cache_key_policy.0.query_string_blacklist", "cdn_policy.0.cache_key_policy.0.query_string_whitelist", "cdn_policy.0.cache_key_policy.0.include_http_headers", "cdn_policy.0.cache_key_policy.0.include_named_cookies"},
 									},
 									"include_query_string": {
 										Type:     schema.TypeBool,
@@ -269,7 +279,7 @@ string will be included.
 
 If false, the query string will be excluded from the cache
 key entirely.`,
-										AtLeastOneOf: []string{"cdn_policy.0.cache_key_policy.0.include_host", "cdn_policy.0.cache_key_policy.0.include_protocol", "cdn_policy.0.cache_key_policy.0.include_query_string", "cdn_policy.0.cache_key_policy.0.query_string_blacklist", "cdn_policy.0.cache_key_policy.0.query_string_whitelist", "cdn_policy.0.cache_key_policy.0.include_named_cookies"},
+										AtLeastOneOf: []string{"cdn_policy.0.cache_key_policy.0.include_host", "cdn_policy.0.cache_key_policy.0.include_protocol", "cdn_policy.0.cache_key_policy.0.include_query_string", "cdn_policy.0.cache_key_policy.0.query_string_blacklist", "cdn_policy.0.cache_key_policy.0.query_string_whitelist", "cdn_policy.0.cache_key_policy.0.include_http_headers", "cdn_policy.0.cache_key_policy.0.include_named_cookies"},
 									},
 									"query_string_blacklist": {
 										Type:     schema.TypeSet,
@@ -284,7 +294,7 @@ delimiters.`,
 											Type: schema.TypeString,
 										},
 										Set:          schema.HashString,
-										AtLeastOneOf: []string{"cdn_policy.0.cache_key_policy.0.include_host", "cdn_policy.0.cache_key_policy.0.include_protocol", "cdn_policy.0.cache_key_policy.0.include_query_string", "cdn_policy.0.cache_key_policy.0.query_string_blacklist", "cdn_policy.0.cache_key_policy.0.query_string_whitelist", "cdn_policy.0.cache_key_policy.0.include_named_cookies"},
+										AtLeastOneOf: []string{"cdn_policy.0.cache_key_policy.0.include_host", "cdn_policy.0.cache_key_policy.0.include_protocol", "cdn_policy.0.cache_key_policy.0.include_query_string", "cdn_policy.0.cache_key_policy.0.query_string_blacklist", "cdn_policy.0.cache_key_policy.0.query_string_whitelist", "cdn_policy.0.cache_key_policy.0.include_http_headers", "cdn_policy.0.cache_key_policy.0.include_named_cookies"},
 									},
 									"query_string_whitelist": {
 										Type:     schema.TypeSet,
@@ -299,7 +309,7 @@ delimiters.`,
 											Type: schema.TypeString,
 										},
 										Set:          schema.HashString,
-										AtLeastOneOf: []string{"cdn_policy.0.cache_key_policy.0.include_host", "cdn_policy.0.cache_key_policy.0.include_protocol", "cdn_policy.0.cache_key_policy.0.include_query_string", "cdn_policy.0.cache_key_policy.0.query_string_blacklist", "cdn_policy.0.cache_key_policy.0.query_string_whitelist", "cdn_policy.0.cache_key_policy.0.include_named_cookies"},
+										AtLeastOneOf: []string{"cdn_policy.0.cache_key_policy.0.include_host", "cdn_policy.0.cache_key_policy.0.include_protocol", "cdn_policy.0.cache_key_policy.0.include_query_string", "cdn_policy.0.cache_key_policy.0.query_string_blacklist", "cdn_policy.0.cache_key_policy.0.query_string_whitelist", "cdn_policy.0.cache_key_policy.0.include_http_headers", "cdn_policy.0.cache_key_policy.0.include_named_cookies"},
 									},
 								},
 							},
@@ -436,6 +446,12 @@ Defaults to 3.`,
 						},
 					},
 				},
+			},
+			"compression_mode": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				ValidateFunc: validateEnum([]string{"AUTOMATIC", "DISABLED", ""}),
+				Description:  `Compress text responses using Brotli or gzip compression, based on the client's Accept-Encoding header. Possible values: ["AUTOMATIC", "DISABLED"]`,
 			},
 			"connection_draining_timeout_sec": {
 				Type:     schema.TypeInt,
@@ -921,6 +937,11 @@ failed request. Default is 30 seconds. Valid range is [1, 86400].`,
 				Description: `Fingerprint of this resource. A hash of the contents stored in this
 object. This field is used in optimistic locking.`,
 			},
+			"generated_id": {
+				Type:        schema.TypeInt,
+				Computed:    true,
+				Description: `The unique identifier for the resource. This identifier is defined by the server.`,
+			},
 			"project": {
 				Type:     schema.TypeString,
 				Optional: true,
@@ -1093,6 +1114,12 @@ func resourceComputeBackendServiceCreate(d *schema.ResourceData, meta interface{
 		return err
 	} else if v, ok := d.GetOkExists("circuit_breakers"); !isEmptyValue(reflect.ValueOf(circuitBreakersProp)) && (ok || !reflect.DeepEqual(v, circuitBreakersProp)) {
 		obj["circuitBreakers"] = circuitBreakersProp
+	}
+	compressionModeProp, err := expandComputeBackendServiceCompressionMode(d.Get("compression_mode"), d, config)
+	if err != nil {
+		return err
+	} else if v, ok := d.GetOkExists("compression_mode"); !isEmptyValue(reflect.ValueOf(compressionModeProp)) && (ok || !reflect.DeepEqual(v, compressionModeProp)) {
+		obj["compressionMode"] = compressionModeProp
 	}
 	consistentHashProp, err := expandComputeBackendServiceConsistentHash(d.Get("consistent_hash"), d, config)
 	if err != nil {
@@ -1347,6 +1374,9 @@ func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{})
 	if err := d.Set("circuit_breakers", flattenComputeBackendServiceCircuitBreakers(res["circuitBreakers"], d, config)); err != nil {
 		return fmt.Errorf("Error reading BackendService: %s", err)
 	}
+	if err := d.Set("compression_mode", flattenComputeBackendServiceCompressionMode(res["compressionMode"], d, config)); err != nil {
+		return fmt.Errorf("Error reading BackendService: %s", err)
+	}
 	if err := d.Set("consistent_hash", flattenComputeBackendServiceConsistentHash(res["consistentHash"], d, config)); err != nil {
 		return fmt.Errorf("Error reading BackendService: %s", err)
 	}
@@ -1387,6 +1417,9 @@ func resourceComputeBackendServiceRead(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Error reading BackendService: %s", err)
 	}
 	if err := d.Set("health_checks", flattenComputeBackendServiceHealthChecks(res["healthChecks"], d, config)); err != nil {
+		return fmt.Errorf("Error reading BackendService: %s", err)
+	}
+	if err := d.Set("generated_id", flattenComputeBackendServiceGeneratedId(res["id"], d, config)); err != nil {
 		return fmt.Errorf("Error reading BackendService: %s", err)
 	}
 	if err := d.Set("iap", flattenComputeBackendServiceIap(res["iap"], d, config)); err != nil {
@@ -1465,6 +1498,12 @@ func resourceComputeBackendServiceUpdate(d *schema.ResourceData, meta interface{
 		return err
 	} else if v, ok := d.GetOkExists("circuit_breakers"); !isEmptyValue(reflect.ValueOf(v)) && (ok || !reflect.DeepEqual(v, circuitBreakersProp)) {
 		obj["circuitBreakers"] = circuitBreakersProp
+	}
+	compressionModeProp, err := expandComputeBackendServiceCompressionMode(d.Get("compression_mode"), d, config)
+	if err != nil {
+		return err
+	} else if v, ok := d.GetOkExists("compression_mode"); !isEmptyValue(reflect.ValueOf(v)) && (ok || !reflect.DeepEqual(v, compressionModeProp)) {
+		obj["compressionMode"] = compressionModeProp
 	}
 	consistentHashProp, err := expandComputeBackendServiceConsistentHash(d.Get("consistent_hash"), d, config)
 	if err != nil {
@@ -1963,6 +2002,10 @@ func flattenComputeBackendServiceCircuitBreakersMaxRetries(v interface{}, d *sch
 	return v // let terraform core handle it otherwise
 }
 
+func flattenComputeBackendServiceCompressionMode(v interface{}, d *schema.ResourceData, config *Config) interface{} {
+	return v
+}
+
 func flattenComputeBackendServiceConsistentHash(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	if v == nil {
 		return nil
@@ -2123,6 +2166,8 @@ func flattenComputeBackendServiceCdnPolicyCacheKeyPolicy(v interface{}, d *schem
 		flattenComputeBackendServiceCdnPolicyCacheKeyPolicyQueryStringBlacklist(original["queryStringBlacklist"], d, config)
 	transformed["query_string_whitelist"] =
 		flattenComputeBackendServiceCdnPolicyCacheKeyPolicyQueryStringWhitelist(original["queryStringWhitelist"], d, config)
+	transformed["include_http_headers"] =
+		flattenComputeBackendServiceCdnPolicyCacheKeyPolicyIncludeHttpHeaders(original["includeHttpHeaders"], d, config)
 	transformed["include_named_cookies"] =
 		flattenComputeBackendServiceCdnPolicyCacheKeyPolicyIncludeNamedCookies(original["includeNamedCookies"], d, config)
 	return []interface{}{transformed}
@@ -2151,6 +2196,10 @@ func flattenComputeBackendServiceCdnPolicyCacheKeyPolicyQueryStringWhitelist(v i
 		return v
 	}
 	return schema.NewSet(schema.HashString, v.([]interface{}))
+}
+
+func flattenComputeBackendServiceCdnPolicyCacheKeyPolicyIncludeHttpHeaders(v interface{}, d *schema.ResourceData, config *Config) interface{} {
+	return v
 }
 
 func flattenComputeBackendServiceCdnPolicyCacheKeyPolicyIncludeNamedCookies(v interface{}, d *schema.ResourceData, config *Config) interface{} {
@@ -2368,6 +2417,23 @@ func flattenComputeBackendServiceHealthChecks(v interface{}, d *schema.ResourceD
 		return v
 	}
 	return convertAndMapStringArr(v.([]interface{}), ConvertSelfLinkToV1)
+}
+
+func flattenComputeBackendServiceGeneratedId(v interface{}, d *schema.ResourceData, config *Config) interface{} {
+	// Handles the string fixed64 format
+	if strVal, ok := v.(string); ok {
+		if intVal, err := stringToFixed64(strVal); err == nil {
+			return intVal
+		}
+	}
+
+	// number values are represented as float64
+	if floatVal, ok := v.(float64); ok {
+		intVal := int(floatVal)
+		return intVal
+	}
+
+	return v // let terraform core handle it otherwise
 }
 
 func flattenComputeBackendServiceIap(v interface{}, d *schema.ResourceData, config *Config) interface{} {
@@ -2985,6 +3051,10 @@ func expandComputeBackendServiceCircuitBreakersMaxRetries(v interface{}, d Terra
 	return v, nil
 }
 
+func expandComputeBackendServiceCompressionMode(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
+	return v, nil
+}
+
 func expandComputeBackendServiceConsistentHash(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
 	l := v.([]interface{})
 	if len(l) == 0 || l[0] == nil {
@@ -3220,6 +3290,13 @@ func expandComputeBackendServiceCdnPolicyCacheKeyPolicy(v interface{}, d Terrafo
 		transformed["queryStringWhitelist"] = transformedQueryStringWhitelist
 	}
 
+	transformedIncludeHttpHeaders, err := expandComputeBackendServiceCdnPolicyCacheKeyPolicyIncludeHttpHeaders(original["include_http_headers"], d, config)
+	if err != nil {
+		return nil, err
+	} else {
+		transformed["includeHttpHeaders"] = transformedIncludeHttpHeaders
+	}
+
 	transformedIncludeNamedCookies, err := expandComputeBackendServiceCdnPolicyCacheKeyPolicyIncludeNamedCookies(original["include_named_cookies"], d, config)
 	if err != nil {
 		return nil, err
@@ -3249,6 +3326,10 @@ func expandComputeBackendServiceCdnPolicyCacheKeyPolicyQueryStringBlacklist(v in
 
 func expandComputeBackendServiceCdnPolicyCacheKeyPolicyQueryStringWhitelist(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
 	v = v.(*schema.Set).List()
+	return v, nil
+}
+
+func expandComputeBackendServiceCdnPolicyCacheKeyPolicyIncludeHttpHeaders(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
 	return v, nil
 }
 

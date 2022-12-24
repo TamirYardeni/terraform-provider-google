@@ -450,6 +450,27 @@ func TestAccDataprocCluster_nonPreemptibleSecondary(t *testing.T) {
 	})
 }
 
+func TestAccDataprocCluster_spotSecondary(t *testing.T) {
+	t.Parallel()
+
+	rnd := randString(t, 10)
+	var cluster dataproc.Cluster
+	vcrTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDataprocClusterDestroy(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataprocCluster_spotSecondary(rnd),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDataprocClusterExists(t, "google_dataproc_cluster.spot_secondary", &cluster),
+					resource.TestCheckResourceAttr("google_dataproc_cluster.spot_secondary", "cluster_config.0.preemptible_worker_config.0.preemptibility", "SPOT"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccDataprocCluster_withStagingBucket(t *testing.T) {
 	t.Parallel()
 
@@ -707,8 +728,8 @@ func TestAccDataprocCluster_withLabels(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDataprocClusterExists(t, "google_dataproc_cluster.with_labels", &cluster),
 
-					// We only provide one, but GCP adds three, so expect 4.
-					resource.TestCheckResourceAttr("google_dataproc_cluster.with_labels", "labels.%", "4"),
+					// We only provide one, but GCP adds three and we added goog-dataproc-autozone internally, so expect 5.
+					resource.TestCheckResourceAttr("google_dataproc_cluster.with_labels", "labels.%", "5"),
 					resource.TestCheckResourceAttr("google_dataproc_cluster.with_labels", "labels.key1", "value1"),
 				),
 			},
@@ -1493,6 +1514,41 @@ resource "google_dataproc_cluster" "non_preemptible_secondary" {
 		boot_disk_size_gb = 35
 	  }
 	}
+  }
+}
+	`, rnd)
+}
+
+func testAccDataprocCluster_spotSecondary(rnd string) string {
+	return fmt.Sprintf(`
+resource "google_dataproc_cluster" "spot_secondary" {
+  name   = "tf-test-dproc-%s"
+  region = "us-central1"
+
+  cluster_config {
+    master_config {
+      num_instances = "1"
+      machine_type  = "e2-medium"
+      disk_config {
+        boot_disk_size_gb = 35
+      }
+    }
+
+    worker_config {
+      num_instances = "2"
+      machine_type  = "e2-medium"
+      disk_config {
+        boot_disk_size_gb = 35
+      }
+    }
+
+    preemptible_worker_config {
+      num_instances = "1"
+      preemptibility = "SPOT"
+      disk_config {
+        boot_disk_size_gb = 35
+      }
+    }
   }
 }
 	`, rnd)

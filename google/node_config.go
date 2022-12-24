@@ -16,6 +16,16 @@ var defaultOauthScopes = []string{
 	"https://www.googleapis.com/auth/trace.append",
 }
 
+func schemaLoggingVariant() *schema.Schema {
+	return &schema.Schema{
+		Type:         schema.TypeString,
+		Optional:     true,
+		Description:  `Type of logging agent that is used as the default value for node pools in the cluster. Valid values include DEFAULT and MAX_THROUGHPUT.`,
+		Default:      "DEFAULT",
+		ValidateFunc: validation.StringInSlice([]string{"DEFAULT", "MAX_THROUGHPUT"}, false),
+	}
+}
+
 func schemaGcfsConfig(forceNew bool) *schema.Schema {
 	return &schema.Schema{
 		Type:        schema.TypeList,
@@ -93,6 +103,30 @@ func schemaNodeConfig() *schema.Schema {
 								ForceNew:    true,
 								Description: `Size of partitions to create on the GPU. Valid values are described in the NVIDIA mig user guide (https://docs.nvidia.com/datacenter/tesla/mig-user-guide/#partitioning)`,
 							},
+							"gpu_sharing_config": {
+								Type:        schema.TypeList,
+								MaxItems:    1,
+								Optional:    true,
+								ForceNew:    true,
+								ConfigMode:  schema.SchemaConfigModeAttr,
+								Description: `Configuration for GPU sharing.`,
+								Elem: &schema.Resource{
+									Schema: map[string]*schema.Schema{
+										"gpu_sharing_strategy": {
+											Type:        schema.TypeString,
+											Required:    true,
+											ForceNew:    true,
+											Description: `The type of GPU sharing strategy to enable on the GPU node. Possible values are described in the API package (https://pkg.go.dev/google.golang.org/api/container/v1#GPUSharingConfig)`,
+										},
+										"max_shared_clients_per_gpu": {
+											Type:        schema.TypeInt,
+											Required:    true,
+											ForceNew:    true,
+											Description: `The maximum number of containers that can share a GPU.`,
+										},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -110,9 +144,15 @@ func schemaNodeConfig() *schema.Schema {
 					Optional: true,
 					// Computed=true because GKE Sandbox will automatically add labels to nodes that can/cannot run sandboxed pods.
 					Computed:    true,
-					ForceNew:    true,
 					Elem:        &schema.Schema{Type: schema.TypeString},
 					Description: `The map of Kubernetes labels (key/value pairs) to be applied to each node. These will added in addition to any default label(s) that Kubernetes may apply to the node.`,
+				},
+
+				"resource_labels": {
+					Type:        schema.TypeMap,
+					Optional:    true,
+					Elem:        &schema.Schema{Type: schema.TypeString},
+					Description: `The GCE resource labels (a map of key/value pairs) to be applied to the node pool.`,
 				},
 
 				"local_ssd_count": {
@@ -123,6 +163,8 @@ func schemaNodeConfig() *schema.Schema {
 					ValidateFunc: validation.IntAtLeast(0),
 					Description:  `The number of local SSD disks to be attached to the node.`,
 				},
+
+				"logging_variant": schemaLoggingVariant(),
 
 				"gcfs_config": schemaGcfsConfig(true),
 
@@ -244,7 +286,6 @@ func schemaNodeConfig() *schema.Schema {
 				"tags": {
 					Type:        schema.TypeList,
 					Optional:    true,
-					ForceNew:    true,
 					Elem:        &schema.Schema{Type: schema.TypeString},
 					Description: `The list of instance tags applied to all nodes.`,
 				},
@@ -346,6 +387,24 @@ func schemaNodeConfig() *schema.Schema {
 	}
 }
 
+func expandNodeConfigDefaults(configured interface{}) *container.NodeConfigDefaults {
+	configs := configured.([]interface{})
+	if len(configs) == 0 || configs[0] == nil {
+		return nil
+	}
+	config := configs[0].(map[string]interface{})
+
+	nodeConfigDefaults := &container.NodeConfigDefaults{}
+	if variant, ok := config["logging_variant"]; ok {
+		nodeConfigDefaults.LoggingConfig = &container.NodePoolLoggingConfig{
+			VariantConfig: &container.LoggingVariantConfig{
+				Variant: variant.(string),
+			},
+		}
+	}
+	return nodeConfigDefaults
+}
+
 func expandNodeConfig(v interface{}) *container.NodeConfig {
 	nodeConfigs := v.([]interface{})
 	nc := &container.NodeConfig{
@@ -370,11 +429,21 @@ func expandNodeConfig(v interface{}) *container.NodeConfig {
 			if data["count"].(int) == 0 {
 				continue
 			}
-			guestAccelerators = append(guestAccelerators, &container.AcceleratorConfig{
+			guestAcceleratorConfig := &container.AcceleratorConfig{
 				AcceleratorCount: int64(data["count"].(int)),
 				AcceleratorType:  data["type"].(string),
 				GpuPartitionSize: data["gpu_partition_size"].(string),
-			})
+			}
+
+			if v, ok := data["gpu_sharing_config"]; ok && len(v.([]interface{})) > 0 {
+				gpuSharingConfig := data["gpu_sharing_config"].([]interface{})[0].(map[string]interface{})
+				guestAcceleratorConfig.GpuSharingConfig = &container.GPUSharingConfig{
+					GpuSharingStrategy:     gpuSharingConfig["gpu_sharing_strategy"].(string),
+					MaxSharedClientsPerGpu: int64(gpuSharingConfig["max_shared_clients_per_gpu"].(int)),
+				}
+			}
+
+			guestAccelerators = append(guestAccelerators, guestAcceleratorConfig)
 		}
 		nc.Accelerators = guestAccelerators
 	}
@@ -389,6 +458,14 @@ func expandNodeConfig(v interface{}) *container.NodeConfig {
 
 	if v, ok := nodeConfig["local_ssd_count"]; ok {
 		nc.LocalSsdCount = int64(v.(int))
+	}
+
+	if v, ok := nodeConfig["logging_variant"]; ok {
+		nc.LoggingConfig = &container.NodePoolLoggingConfig{
+			VariantConfig: &container.LoggingVariantConfig{
+				Variant: v.(string),
+			},
+		}
 	}
 
 	if v, ok := nodeConfig["gcfs_config"]; ok && len(v.([]interface{})) > 0 {
@@ -452,6 +529,14 @@ func expandNodeConfig(v interface{}) *container.NodeConfig {
 			m[k] = val.(string)
 		}
 		nc.Labels = m
+	}
+
+	if v, ok := nodeConfig["resource_labels"]; ok {
+		m := make(map[string]string)
+		for k, val := range v.(map[string]interface{}) {
+			m[k] = val.(string)
+		}
+		nc.ResourceLabels = m
 	}
 
 	if v, ok := nodeConfig["tags"]; ok {
@@ -532,6 +617,20 @@ func expandWorkloadMetadataConfig(v interface{}) *container.WorkloadMetadataConf
 	return wmc
 }
 
+func flattenNodeConfigDefaults(c *container.NodeConfigDefaults) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+
+	if c == nil {
+		return result
+	}
+
+	result = append(result, map[string]interface{}{})
+
+	result[0]["logging_variant"] = flattenLoggingVariant(c.LoggingConfig)
+
+	return result
+}
+
 func flattenNodeConfig(c *container.NodeConfig) []map[string]interface{} {
 	config := make([]map[string]interface{}, 0, 1)
 
@@ -545,6 +644,7 @@ func flattenNodeConfig(c *container.NodeConfig) []map[string]interface{} {
 		"disk_type":                c.DiskType,
 		"guest_accelerator":        flattenContainerGuestAccelerators(c.Accelerators),
 		"local_ssd_count":          c.LocalSsdCount,
+		"logging_variant":          flattenLoggingVariant(c.LoggingConfig),
 		"gcfs_config":              flattenGcfsConfig(c.GcfsConfig),
 		"gvnic":                    flattenGvnic(c.Gvnic),
 		"reservation_affinity":     flattenGKEReservationAffinity(c.ReservationAffinity),
@@ -552,6 +652,7 @@ func flattenNodeConfig(c *container.NodeConfig) []map[string]interface{} {
 		"metadata":                 c.Metadata,
 		"image_type":               c.ImageType,
 		"labels":                   c.Labels,
+		"resource_labels":          c.ResourceLabels,
 		"tags":                     c.Tags,
 		"preemptible":              c.Preemptible,
 		"spot":                     c.Spot,
@@ -573,11 +674,20 @@ func flattenNodeConfig(c *container.NodeConfig) []map[string]interface{} {
 func flattenContainerGuestAccelerators(c []*container.AcceleratorConfig) []map[string]interface{} {
 	result := []map[string]interface{}{}
 	for _, accel := range c {
-		result = append(result, map[string]interface{}{
+		accelerator := map[string]interface{}{
 			"count":              accel.AcceleratorCount,
 			"type":               accel.AcceleratorType,
 			"gpu_partition_size": accel.GpuPartitionSize,
-		})
+		}
+		if accel.GpuSharingConfig != nil {
+			accelerator["gpu_sharing_config"] = []map[string]interface{}{
+				{
+					"gpu_sharing_strategy":       accel.GpuSharingConfig.GpuSharingStrategy,
+					"max_shared_clients_per_gpu": accel.GpuSharingConfig.MaxSharedClientsPerGpu,
+				},
+			}
+		}
+		result = append(result, accelerator)
 	}
 	return result
 }
@@ -591,6 +701,14 @@ func flattenShieldedInstanceConfig(c *container.ShieldedInstanceConfig) []map[st
 		})
 	}
 	return result
+}
+
+func flattenLoggingVariant(c *container.NodePoolLoggingConfig) string {
+	variant := "DEFAULT"
+	if c != nil && c.VariantConfig != nil && c.VariantConfig.Variant != "" {
+		variant = c.VariantConfig.Variant
+	}
+	return variant
 }
 
 func flattenGcfsConfig(c *container.GcfsConfig) []map[string]interface{} {

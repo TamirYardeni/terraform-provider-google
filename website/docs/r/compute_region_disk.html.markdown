@@ -140,6 +140,17 @@ The following arguments are supported:
   (Optional, [Beta](https://terraform.io/docs/providers/google/guides/provider_versions.html))
   Specifies the disk interface to use for attaching this disk, which is either SCSI or NVME. The default is SCSI.
 
+* `source_disk` -
+  (Optional)
+  The source disk used to create this disk. You can provide this as a partial or full URL to the resource.
+  For example, the following are valid values:
+  * https://www.googleapis.com/compute/v1/projects/{project}/zones/{zone}/disks/{disk}
+  * https://www.googleapis.com/compute/v1/projects/{project}/regions/{region}/disks/{disk}
+  * projects/{project}/zones/{zone}/disks/{disk}
+  * projects/{project}/regions/{region}/disks/{disk}
+  * zones/{zone}/disks/{disk}
+  * regions/{region}/disks/{disk}
+
 * `region` -
   (Optional)
   A reference to the region where the disk resides.
@@ -232,6 +243,11 @@ In addition to the arguments listed above, the following computed attributes are
   Links to the users of the disk (attached instances) in form:
   project/zones/zone/instances/instance
 
+* `source_disk_id` -
+  The ID value of the disk used to create this image. This value may
+  be used to determine whether the image was taken from the current
+  or a previous instance of a given disk name.
+
 * `source_snapshot_id` -
   The unique ID of the snapshot used to create this disk. This value
   identifies the exact snapshot that was used to create this persistent
@@ -265,4 +281,4 @@ $ terraform import google_compute_region_disk.default {{name}}
 
 ## User Project Overrides
 
-This resource supports [User Project Overrides](https://www.terraform.io/docs/providers/google/guides/provider_reference.html#user_project_override).
+This resource supports [User Project Overrides](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference#user_project_override).

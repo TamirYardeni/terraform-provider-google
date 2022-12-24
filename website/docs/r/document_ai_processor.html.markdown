@@ -12,7 +12,7 @@
 #     .github/CONTRIBUTING.md.
 #
 # ----------------------------------------------------------------------------
-subcategory: "Essential Contacts"
+subcategory: "Document AI"
 page_title: "Google: google_document_ai_processor"
 description: |-
   The first-class citizen for Document AI.
@@ -105,4 +105,4 @@ $ terraform import google_document_ai_processor.default {{location}}/{{name}}
 
 ## User Project Overrides
 
-This resource supports [User Project Overrides](https://www.terraform.io/docs/providers/google/guides/provider_reference.html#user_project_override).
+This resource supports [User Project Overrides](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference#user_project_override).

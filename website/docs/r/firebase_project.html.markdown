@@ -23,7 +23,6 @@ description: |-
 A Google Cloud Firebase instance. This enables Firebase resources on a given google project.
 Since a FirebaseProject is actually also a GCP Project, a FirebaseProject uses underlying GCP
 identifiers (most importantly, the projectId) as its own for easy interop with GCP APIs.
-
 Once Firebase has been added to a Google Project it cannot be removed.
 
 ~> **Warning:** This resource is in beta, and should be used with the terraform-provider-google-beta provider.
@@ -31,7 +30,7 @@ See [Provider Versions](https://terraform.io/docs/providers/google/guides/provid
 
 To get more information about Project, see:
 
-* [API documentation](https://firebase.google.com/docs/projects/api/reference/rest/v1beta1/projects)
+* [API documentation](https://firebase.google.com/docs/reference/firebase-management/rest/v1beta1/projects)
 * How-to Guides
     * [Official Documentation](https://firebase.google.com/)
 
@@ -99,4 +98,4 @@ $ terraform import google_firebase_project.default {{project}}
 
 ## User Project Overrides
 
-This resource supports [User Project Overrides](https://www.terraform.io/docs/providers/google/guides/provider_reference.html#user_project_override).
+This resource supports [User Project Overrides](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference#user_project_override).

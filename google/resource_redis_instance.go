@@ -302,7 +302,7 @@ resolution and up to nine fractional digits.`,
 				Type:        schema.TypeList,
 				Computed:    true,
 				Optional:    true,
-				Description: `Maintenance policy for an instance.`,
+				Description: `Persistence configuration for an instance.`,
 				MaxItems:    1,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -318,8 +318,8 @@ resolution and up to nine fractional digits.`,
 						},
 						"rdb_snapshot_period": {
 							Type:         schema.TypeString,
-							Required:     true,
-							ValidateFunc: validateEnum([]string{"ONE_HOUR", "SIX_HOURS", "TWELVE_HOURS", "TWENTY_FOUR_HOURS"}),
+							Optional:     true,
+							ValidateFunc: validateEnum([]string{"ONE_HOUR", "SIX_HOURS", "TWELVE_HOURS", "TWENTY_FOUR_HOURS", ""}),
 							Description: `Optional. Available snapshot periods for scheduling.
 
 - ONE_HOUR:	Snapshot every 1 hour.
@@ -732,6 +732,7 @@ func resourceRedisInstanceCreate(d *schema.ResourceData, meta interface{}) error
 	if err != nil {
 		// The resource didn't actually create
 		d.SetId("")
+
 		return fmt.Errorf("Error waiting to create Instance: %s", err)
 	}
 

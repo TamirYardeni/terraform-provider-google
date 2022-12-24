@@ -51,9 +51,9 @@ func TestAccDataFusionInstance_dataFusionInstanceBasicExample(t *testing.T) {
 func testAccDataFusionInstance_dataFusionInstanceBasicExample(context map[string]interface{}) string {
 	return Nprintf(`
 resource "google_data_fusion_instance" "basic_instance" {
-  name = "tf-test-my-instance%{random_suffix}"
+  name   = "tf-test-my-instance%{random_suffix}"
   region = "us-central1"
-  type = "BASIC"
+  type   = "BASIC"
   # Mark for testing to avoid service networking connection usage that is not cleaned up
   options = {
     prober_test_run = "true"
@@ -90,22 +90,26 @@ func TestAccDataFusionInstance_dataFusionInstanceFullExample(t *testing.T) {
 func testAccDataFusionInstance_dataFusionInstanceFullExample(context map[string]interface{}) string {
 	return Nprintf(`
 resource "google_data_fusion_instance" "extended_instance" {
-  name = "tf-test-my-instance%{random_suffix}"
-  description = "My Data Fusion instance"
-  region = "us-central1"
-  type = "BASIC"
-  enable_stackdriver_logging = true
+  name                          = "tf-test-my-instance%{random_suffix}"
+  description                   = "My Data Fusion instance"
+  display_name                  = "My Data Fusion instance"
+  region                        = "us-central1"
+  type                          = "BASIC"
+  enable_stackdriver_logging    = true
   enable_stackdriver_monitoring = true
+  private_instance              = true
+  version                       = "6.6.0"
+  dataproc_service_account      = data.google_app_engine_default_service_account.default.email
+
   labels = {
     example_key = "example_value"
   }
-  private_instance = true
+
   network_config {
-    network = "default"
-    ip_allocation = "10.89.48.0/22"
+    network       = "default"
+    ip_allocation = "${google_compute_global_address.private_ip_alloc.address}/${google_compute_global_address.private_ip_alloc.prefix_length}"
   }
-  version = "6.3.0"
-  dataproc_service_account = data.google_app_engine_default_service_account.default.email
+
   # Mark for testing to avoid service networking connection usage that is not cleaned up
   options = {
     prober_test_run = "true"
@@ -113,6 +117,201 @@ resource "google_data_fusion_instance" "extended_instance" {
 }
 
 data "google_app_engine_default_service_account" "default" {
+}
+
+resource "google_compute_network" "network" {
+  name = "tf-test-datafusion-full-network%{random_suffix}"
+}
+
+resource "google_compute_global_address" "private_ip_alloc" {
+  name          = "tf-test-datafusion-ip-alloc%{random_suffix}"
+  address_type  = "INTERNAL"
+  purpose       = "VPC_PEERING"
+  prefix_length = 22
+  network       = google_compute_network.network.id
+}
+`, context)
+}
+
+func TestAccDataFusionInstance_dataFusionInstanceCmekExample(t *testing.T) {
+	t.Parallel()
+
+	context := map[string]interface{}{
+		"random_suffix": randString(t, 10),
+	}
+
+	vcrTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDataFusionInstanceDestroyProducer(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataFusionInstance_dataFusionInstanceCmekExample(context),
+			},
+			{
+				ResourceName:            "google_data_fusion_instance.cmek",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"region"},
+			},
+		},
+	})
+}
+
+func testAccDataFusionInstance_dataFusionInstanceCmekExample(context map[string]interface{}) string {
+	return Nprintf(`
+resource "google_data_fusion_instance" "cmek" {
+  name   = "tf-test-my-instance%{random_suffix}"
+  region = "us-central1"
+  type   = "BASIC"
+
+  crypto_key_config {
+    key_reference = google_kms_crypto_key.crypto_key.id
+  }
+
+  depends_on = [google_kms_crypto_key_iam_binding.crypto_key_binding]
+}
+
+resource "google_kms_crypto_key" "crypto_key" {
+  name     = "tf-test-my-instance%{random_suffix}"
+  key_ring = google_kms_key_ring.key_ring.id
+}
+
+resource "google_kms_key_ring" "key_ring" {
+  name     = "tf-test-my-instance%{random_suffix}"
+  location = "us-central1"
+}
+
+resource "google_kms_crypto_key_iam_binding" "crypto_key_binding" {
+  crypto_key_id = google_kms_crypto_key.crypto_key.id
+  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+
+  members = [
+    "serviceAccount:service-${data.google_project.project.number}@gcp-sa-datafusion.iam.gserviceaccount.com"
+  ]
+}
+
+data "google_project" "project" {}
+`, context)
+}
+
+func TestAccDataFusionInstance_dataFusionInstanceEnterpriseExample(t *testing.T) {
+	t.Parallel()
+
+	context := map[string]interface{}{
+		"random_suffix": randString(t, 10),
+	}
+
+	vcrTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDataFusionInstanceDestroyProducer(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataFusionInstance_dataFusionInstanceEnterpriseExample(context),
+			},
+			{
+				ResourceName:            "google_data_fusion_instance.enterprise_instance",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"region"},
+			},
+		},
+	})
+}
+
+func testAccDataFusionInstance_dataFusionInstanceEnterpriseExample(context map[string]interface{}) string {
+	return Nprintf(`
+resource "google_data_fusion_instance" "enterprise_instance" {
+  name = "tf-test-my-instance%{random_suffix}"
+  region = "us-central1"
+  type = "ENTERPRISE"
+  enable_rbac = true
+  # Mark for testing to avoid service networking connection usage that is not cleaned up
+  options = {
+    prober_test_run = "true"
+  }
+}
+`, context)
+}
+
+func TestAccDataFusionInstance_dataFusionInstanceEventExample(t *testing.T) {
+	t.Parallel()
+
+	context := map[string]interface{}{
+		"random_suffix": randString(t, 10),
+	}
+
+	vcrTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDataFusionInstanceDestroyProducer(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataFusionInstance_dataFusionInstanceEventExample(context),
+			},
+			{
+				ResourceName:            "google_data_fusion_instance.event",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"region"},
+			},
+		},
+	})
+}
+
+func testAccDataFusionInstance_dataFusionInstanceEventExample(context map[string]interface{}) string {
+	return Nprintf(`
+resource "google_data_fusion_instance" "event" {
+  name    = "tf-test-my-instance%{random_suffix}"
+  region  = "us-central1"
+  type    = "BASIC"
+  version = "6.7.0"
+
+  event_publish_config {
+    enabled = true
+    topic   = google_pubsub_topic.event.id
+  }
+}
+
+resource "google_pubsub_topic" "event" {
+  name = "tf-test-my-instance%{random_suffix}"
+}
+`, context)
+}
+
+func TestAccDataFusionInstance_dataFusionInstanceZoneExample(t *testing.T) {
+	t.Parallel()
+
+	context := map[string]interface{}{
+		"random_suffix": randString(t, 10),
+	}
+
+	vcrTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDataFusionInstanceDestroyProducer(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDataFusionInstance_dataFusionInstanceZoneExample(context),
+			},
+			{
+				ResourceName:            "google_data_fusion_instance.zone",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"region"},
+			},
+		},
+	})
+}
+
+func testAccDataFusionInstance_dataFusionInstanceZoneExample(context map[string]interface{}) string {
+	return Nprintf(`
+resource "google_data_fusion_instance" "zone" {
+  name   = "tf-test-my-instance%{random_suffix}"
+  region = "us-central1"
+  zone   = "us-central1-a"
+  type   = "DEVELOPER"
 }
 `, context)
 }

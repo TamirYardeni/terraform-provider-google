@@ -53,6 +53,33 @@ func TestAccStorageBucket_basic(t *testing.T) {
 	})
 }
 
+func TestAccStorageBucket_basicWithAutoclass(t *testing.T) {
+	t.Parallel()
+
+	bucketName := testBucketName(t)
+
+	vcrTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccStorageBucketDestroyProducer(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStorageBucket_basicWithAutoclass(bucketName),
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"google_storage_bucket.bucket", "force_destroy", "false"),
+				),
+			},
+			{
+				ResourceName:            "google_storage_bucket.bucket",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"force_destroy"},
+			},
+		},
+	})
+}
+
 func TestAccStorageBucket_requesterPays(t *testing.T) {
 	t.Parallel()
 
@@ -92,6 +119,29 @@ func TestAccStorageBucket_lowercaseLocation(t *testing.T) {
 		Steps: []resource.TestStep{
 			{
 				Config: testAccStorageBucket_lowercaseLocation(bucketName),
+			},
+			{
+				ResourceName:            "google_storage_bucket.bucket",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"force_destroy"},
+			},
+		},
+	})
+}
+
+func TestAccStorageBucket_dualLocation(t *testing.T) {
+	t.Parallel()
+
+	bucketName := testBucketName(t)
+
+	vcrTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccStorageBucketDestroyProducer(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStorageBucket_dualLocation(bucketName),
 			},
 			{
 				ResourceName:            "google_storage_bucket.bucket",
@@ -843,6 +893,28 @@ func TestAccStorageBucket_encryption(t *testing.T) {
 	})
 }
 
+func TestAccStorageBucket_publicAccessPrevention(t *testing.T) {
+	t.Parallel()
+
+	bucketName := fmt.Sprintf("tf-test-acl-bucket-%d", randInt(t))
+
+	vcrTest(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccStorageBucket_publicAccessPrevention(bucketName, "enforced"),
+			},
+			{
+				ResourceName:            "google_storage_bucket.bucket",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"force_destroy"},
+			},
+		},
+	})
+}
+
 func TestAccStorageBucket_uniformBucketAccessOnly(t *testing.T) {
 	t.Parallel()
 
@@ -972,7 +1044,25 @@ func TestAccStorageBucket_website(t *testing.T) {
 				ImportStateVerifyIgnore: []string{"force_destroy"},
 			},
 			{
+				Config: testAccStorageBucket_websiteOneAttributeUpdate(bucketSuffix),
+			},
+			{
+				ResourceName:            "google_storage_bucket.website",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"force_destroy"},
+			},
+			{
 				Config: testAccStorageBucket_website(bucketSuffix),
+			},
+			{
+				ResourceName:            "google_storage_bucket.website",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"force_destroy"},
+			},
+			{
+				Config: testAccStorageBucket_websiteRemoved(bucketSuffix),
 			},
 			{
 				ResourceName:            "google_storage_bucket.website",
@@ -1020,6 +1110,85 @@ func TestAccStorageBucket_retentionPolicyLocked(t *testing.T) {
 			},
 		},
 	})
+}
+
+func TestLabelDiffSuppress(t *testing.T) {
+	cases := map[string]struct {
+		K, Old, New        string
+		ExpectDiffSuppress bool
+	}{
+		"missing goog-dataplex-asset-id": {
+			K:                  "labels.goog-dataplex-asset-id",
+			Old:                "test-bucket",
+			New:                "",
+			ExpectDiffSuppress: true,
+		},
+		"explicit goog-dataplex-asset-id": {
+			K:                  "labels.goog-dataplex-asset-id",
+			Old:                "test-bucket",
+			New:                "test-bucket-1",
+			ExpectDiffSuppress: false,
+		},
+		"missing goog-dataplex-lake-id": {
+			K:                  "labels.goog-dataplex-lake-id",
+			Old:                "test-lake",
+			New:                "",
+			ExpectDiffSuppress: true,
+		},
+		"explicit goog-dataplex-lake-id": {
+			K:                  "labels.goog-dataplex-lake-id",
+			Old:                "test-lake",
+			New:                "test-lake-1",
+			ExpectDiffSuppress: false,
+		},
+		"missing goog-dataplex-project-id": {
+			K:                  "labels.goog-dataplex-project-id",
+			Old:                "test-project-12345",
+			New:                "",
+			ExpectDiffSuppress: true,
+		},
+		"explicit goog-dataplex-project-id": {
+			K:                  "labels.goog-dataplex-project-id",
+			Old:                "test-project-12345",
+			New:                "test-project-12345-1",
+			ExpectDiffSuppress: false,
+		},
+		"missing goog-dataplex-zone-id": {
+			K:                  "labels.goog-dataplex-zone-id",
+			Old:                "test-zone1",
+			New:                "",
+			ExpectDiffSuppress: true,
+		},
+		"explicit goog-dataplex-zone-id": {
+			K:                  "labels.goog-dataplex-zone-id",
+			Old:                "test-zone1",
+			New:                "test-zone1-1",
+			ExpectDiffSuppress: false,
+		},
+		"labels.%": {
+			K:                  "labels.%",
+			Old:                "5",
+			New:                "1",
+			ExpectDiffSuppress: true,
+		},
+		"deleted custom key": {
+			K:                  "labels.my-label",
+			Old:                "my-value",
+			New:                "",
+			ExpectDiffSuppress: false,
+		},
+		"added custom key": {
+			K:                  "labels.my-label",
+			Old:                "",
+			New:                "my-value",
+			ExpectDiffSuppress: false,
+		},
+	}
+	for tn, tc := range cases {
+		if resourceDataplexLabelDiffSuppress(tc.K, tc.Old, tc.New, nil) != tc.ExpectDiffSuppress {
+			t.Errorf("bad: %s, %q: %q => %q expect DiffSuppress to return %t", tn, tc.K, tc.Old, tc.New, tc.ExpectDiffSuppress)
+		}
+	}
 }
 
 func testAccCheckStorageBucketExists(t *testing.T, n string, bucketName string, bucket *storage.Bucket) resource.TestCheckFunc {
@@ -1187,6 +1356,18 @@ resource "google_storage_bucket" "bucket" {
 `, bucketName)
 }
 
+func testAccStorageBucket_basicWithAutoclass(bucketName string) string {
+	return fmt.Sprintf(`
+resource "google_storage_bucket" "bucket" {
+  name     = "%s"
+  location = "US"
+  autoclass  {
+    enabled  = true
+  }
+}
+`, bucketName)
+}
+
 func testAccStorageBucket_requesterPays(bucketName string, pays bool) string {
 	return fmt.Sprintf(`
 resource "google_storage_bucket" "bucket" {
@@ -1204,6 +1385,19 @@ resource "google_storage_bucket" "bucket" {
   name          = "%s"
   location      = "eu"
   force_destroy = true
+}
+`, bucketName)
+}
+
+func testAccStorageBucket_dualLocation(bucketName string) string {
+	return fmt.Sprintf(`
+resource "google_storage_bucket" "bucket" {
+  name          = "%s"
+  location      = "ASIA"
+  force_destroy = true
+  custom_placement_config {
+    data_locations = ["ASIA-EAST1", "ASIA-SOUTHEAST1"]
+  }
 }
 `, bucketName)
 }
@@ -1469,6 +1663,14 @@ resource "google_storage_bucket" "bucket" {
       age            = 2
     }
   }
+  lifecycle_rule {
+    action {
+      type = "AbortIncompleteMultipartUpload"
+    }
+    condition {
+      age = 1
+    }
+  }
 }
 `, bucketName)
 }
@@ -1670,6 +1872,17 @@ resource "google_storage_bucket" "bucket" {
 `, bucketName, enabled)
 }
 
+func testAccStorageBucket_publicAccessPrevention(bucketName string, prevention string) string {
+	return fmt.Sprintf(`
+resource "google_storage_bucket" "bucket" {
+  name                      = "%s"
+  location                  = "US"
+  public_access_prevention  = "%s"
+  force_destroy             = true
+}
+`, bucketName, prevention)
+}
+
 func testAccStorageBucket_encryption(context map[string]interface{}) string {
 	return Nprintf(`
 resource "google_project" "acceptance" {
@@ -1791,6 +2004,17 @@ resource "google_storage_bucket" "website" {
 `, bucketName)
 }
 
+func testAccStorageBucket_websiteRemoved(bucketName string) string {
+	return fmt.Sprintf(`
+resource "google_storage_bucket" "website" {
+  name          = "%s.gcp.tfacc.hashicorptest.com"
+  location      = "US"
+  storage_class = "STANDARD"
+  force_destroy = true
+}
+`, bucketName)
+}
+
 func testAccStorageBucket_websiteOneAttribute(bucketName string) string {
 	return fmt.Sprintf(`
 resource "google_storage_bucket" "website" {
@@ -1801,6 +2025,21 @@ resource "google_storage_bucket" "website" {
 
   website {
     main_page_suffix = "index.html"
+  }
+}
+`, bucketName)
+}
+
+func testAccStorageBucket_websiteOneAttributeUpdate(bucketName string) string {
+	return fmt.Sprintf(`
+resource "google_storage_bucket" "website" {
+  name          = "%s.gcp.tfacc.hashicorptest.com"
+  location      = "US"
+  storage_class = "STANDARD"
+  force_destroy = true
+
+  website {
+    main_page_suffix = "default.html"
   }
 }
 `, bucketName)

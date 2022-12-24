@@ -46,61 +46,6 @@ To get more information about Service, see:
 a Cloud Run Service on Anthos(GKE/VMWare) then you will need to create it using the kubernetes alpha provider.
 Have a look at the Cloud Run Anthos example below.
 
-## Example Usage - Cloud Run Service Pubsub
-
-
-```hcl
-resource "google_cloud_run_service" "default" {
-    name     = "cloud_run_service_name"
-    location = "us-central1"
-    template {
-      spec {
-            containers {
-                image = "gcr.io/cloudrun/hello"
-            }
-      }
-    }
-    traffic {
-      percent         = 100
-      latest_revision = true
-    }
-}
-
-resource "google_service_account" "sa" {
-  account_id   = "cloud-run-pubsub-invoker"
-  display_name = "Cloud Run Pub/Sub Invoker"
-}
-
-resource "google_cloud_run_service_iam_binding" "binding" {
-  location = google_cloud_run_service.default.location
-  service = google_cloud_run_service.default.name
-  role = "roles/run.invoker"
-  members = ["serviceAccount:${google_service_account.sa.email}"]
-}
-
-resource "google_project_iam_binding" "project" {
-  role    = "roles/iam.serviceAccountTokenCreator"
-  members = ["serviceAccount:${google_service_account.sa.email}"]
-}
-
-resource "google_pubsub_topic" "topic" {
-  name = "pubsub_topic"
-}
-
-resource "google_pubsub_subscription" "subscription" {
-  name  = "pubsub_subscription"
-  topic = google_pubsub_topic.topic.name
-  push_config {
-    push_endpoint = google_cloud_run_service.default.status[0].url
-    oidc_token {
-      service_account_email = google_service_account.sa.email
-    }
-    attributes = {
-      x-goog-version = "v1"
-    }
-  }
-}
-```
 ## Example Usage - Cloud Run Service Basic
 
 
@@ -169,7 +114,6 @@ resource "google_sql_database_instance" "instance" {
 
 
 ```hcl
-# Example of how to deploy a publicly-accessible Cloud Run application
 
 resource "google_cloud_run_service" "default" {
   name     = "cloudrun-srv"
@@ -201,27 +145,52 @@ resource "google_cloud_run_service_iam_policy" "noauth" {
   policy_data = data.google_iam_policy.noauth.policy_data
 }
 ```
-## Example Usage - Cloud Run Service Add Tag
+## Example Usage - Cloud Run Service Probes
 
 
 ```hcl
 resource "google_cloud_run_service" "default" {
+  provider = google-beta
+
   name     = "cloudrun-srv"
   location = "us-central1"
+  metadata {
+    annotations = {
+      "run.googleapis.com/launch-stage" = "BETA"
+    }
+  }
 
-  template {}
-
-  traffic {
-    percent       = 100
-    # This revision needs to already exist
-    revision_name = "cloudrun-srv-green"
+  template {
+    spec {
+      containers {
+        image = "us-docker.pkg.dev/cloudrun/container/hello"
+        startup_probe {
+          initial_delay_seconds = 0
+          timeout_seconds = 1
+          period_seconds = 3
+          failure_threshold = 1
+          tcp_socket {
+            port = 8080
+          }
+        }
+        liveness_probe {
+          http_get {
+            path = "/"
+          }
+        }
+      }
+    }
   }
 
   traffic {
-    # Deploy new revision with 0% traffic
-    percent       = 0
-    revision_name = "cloudrun-srv-blue"
-    tag           = "tag-name"
+    percent         = 100
+    latest_revision = true
+  }
+
+  lifecycle {
+    ignore_changes = [
+      metadata.0.annotations,
+    ]
   }
 }
 ```
@@ -455,6 +424,21 @@ The following arguments are supported:
   Only supports SecretVolumeSources.
   Structure is [documented below](#nested_volume_mounts).
 
+* `startup_probe` -
+  (Optional, [Beta](https://terraform.io/docs/providers/google/guides/provider_versions.html))
+  Startup probe of application within the container.
+  All other probes are disabled if a startup probe is provided, until it
+  succeeds. Container will not be added to service endpoints if the probe fails.
+  More info:
+  https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+  Structure is [documented below](#nested_startup_probe).
+
+* `liveness_probe` -
+  (Optional, [Beta](https://terraform.io/docs/providers/google/guides/provider_versions.html))
+  Periodic probe of container liveness. Container will be restarted if the probe fails. More info:
+  https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#container-probes
+  Structure is [documented below](#nested_liveness_probe).
+
 
 <a name="nested_env_from"></a>The `env_from` block supports:
 
@@ -563,7 +547,7 @@ The following arguments are supported:
 
 * `name` -
   (Optional)
-  If specified, used to specify which protocol to use. Allowed values are "http1" and "h2c".
+  If specified, used to specify which protocol to use. Allowed values are "http1" (HTTP/1) and "h2c" (HTTP/2 end-to-end). Defaults to "http1".
 
 * `protocol` -
   (Optional)
@@ -571,7 +555,7 @@ The following arguments are supported:
 
 * `container_port` -
   (Optional)
-  Port number the container listens on. This must be a valid port number, 0 < x < 65536.
+  Port number the container listens on. This must be a valid port number (between 1 and 65535). Defaults to "8080".
 
 <a name="nested_resources"></a>The `resources` block supports:
 
@@ -599,6 +583,155 @@ The following arguments are supported:
 * `name` -
   (Required)
   This must match the Name of a Volume.
+
+<a name="nested_startup_probe"></a>The `startup_probe` block supports:
+
+* `initial_delay_seconds` -
+  (Optional)
+  Number of seconds after the container has started before the probe is
+  initiated.
+  Defaults to 0 seconds. Minimum value is 0. Maximum value is 240.
+
+* `timeout_seconds` -
+  (Optional)
+  Number of seconds after which the probe times out.
+  Defaults to 1 second. Minimum value is 1. Maximum value is 3600.
+  Must be smaller than periodSeconds.
+
+* `period_seconds` -
+  (Optional)
+  How often (in seconds) to perform the probe.
+  Default to 10 seconds. Minimum value is 1. Maximum value is 240.
+
+* `failure_threshold` -
+  (Optional)
+  Minimum consecutive failures for the probe to be considered failed after
+  having succeeded. Defaults to 3. Minimum value is 1.
+
+* `tcp_socket` -
+  (Optional)
+  TcpSocket specifies an action involving a TCP port.
+  Structure is [documented below](#nested_tcp_socket).
+
+* `http_get` -
+  (Optional)
+  HttpGet specifies the http request to perform.
+  Structure is [documented below](#nested_http_get).
+
+* `grpc` -
+  (Optional)
+  GRPC specifies an action involving a GRPC port.
+  Structure is [documented below](#nested_grpc).
+
+
+<a name="nested_tcp_socket"></a>The `tcp_socket` block supports:
+
+* `port` -
+  (Optional)
+  Port number to access on the container. Number must be in the range 1 to 65535.
+
+<a name="nested_http_get"></a>The `http_get` block supports:
+
+* `path` -
+  (Optional)
+  Path to access on the HTTP server. If set, it should not be empty string.
+
+* `http_headers` -
+  (Optional)
+  Custom headers to set in the request. HTTP allows repeated headers.
+  Structure is [documented below](#nested_http_headers).
+
+
+<a name="nested_http_headers"></a>The `http_headers` block supports:
+
+* `name` -
+  (Required)
+  The header field name.
+
+* `value` -
+  (Optional)
+  The header field value.
+
+<a name="nested_grpc"></a>The `grpc` block supports:
+
+* `port` -
+  (Optional)
+  Port number to access on the container. Number must be in the range 1 to 65535.
+
+* `service` -
+  (Optional)
+  The name of the service to place in the gRPC HealthCheckRequest
+  (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+  If this is not specified, the default behavior is defined by gRPC.
+
+<a name="nested_liveness_probe"></a>The `liveness_probe` block supports:
+
+* `initial_delay_seconds` -
+  (Optional)
+  Number of seconds after the container has started before the probe is
+  initiated.
+  Defaults to 0 seconds. Minimum value is 0. Maximum value is 3600.
+
+* `timeout_seconds` -
+  (Optional)
+  Number of seconds after which the probe times out.
+  Defaults to 1 second. Minimum value is 1. Maximum value is 3600.
+  Must be smaller than period_seconds.
+
+* `period_seconds` -
+  (Optional)
+  How often (in seconds) to perform the probe.
+  Default to 10 seconds. Minimum value is 1. Maximum value is 3600.
+
+* `failure_threshold` -
+  (Optional)
+  Minimum consecutive failures for the probe to be considered failed after
+  having succeeded. Defaults to 3. Minimum value is 1.
+
+* `http_get` -
+  (Optional)
+  HttpGet specifies the http request to perform.
+  Structure is [documented below](#nested_http_get).
+
+* `grpc` -
+  (Optional)
+  GRPC specifies an action involving a GRPC port.
+  Structure is [documented below](#nested_grpc).
+
+
+<a name="nested_http_get"></a>The `http_get` block supports:
+
+* `path` -
+  (Optional)
+  Path to access on the HTTP server. If set, it should not be empty string.
+
+* `http_headers` -
+  (Optional)
+  Custom headers to set in the request. HTTP allows repeated headers.
+  Structure is [documented below](#nested_http_headers).
+
+
+<a name="nested_http_headers"></a>The `http_headers` block supports:
+
+* `name` -
+  (Required)
+  The header field name.
+
+* `value` -
+  (Optional)
+  The header field value.
+
+<a name="nested_grpc"></a>The `grpc` block supports:
+
+* `port` -
+  (Optional)
+  Port number to access on the container. Number must be in the range 1 to 65535.
+
+* `service` -
+  (Optional)
+  The name of the service to place in the gRPC HealthCheckRequest
+  (see https://github.com/grpc/grpc/blob/master/doc/health-checking.md).
+  If this is not specified, the default behavior is defined by gRPC.
 
 <a name="nested_volumes"></a>The `volumes` block supports:
 
@@ -825,4 +958,4 @@ $ terraform import google_cloud_run_service.default {{location}}/{{name}}
 
 ## User Project Overrides
 
-This resource supports [User Project Overrides](https://www.terraform.io/docs/providers/google/guides/provider_reference.html#user_project_override).
+This resource supports [User Project Overrides](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference#user_project_override).

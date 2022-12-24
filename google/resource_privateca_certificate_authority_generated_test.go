@@ -45,7 +45,7 @@ func TestAccPrivatecaCertificateAuthority_privatecaCertificateAuthorityBasicExam
 				ResourceName:            "google_privateca_certificate_authority.default",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"pem_ca_certificate", "ignore_active_certificates_on_deletion", "location", "certificate_authority_id", "pool", "deletion_protection"},
+				ImportStateVerifyIgnore: []string{"pem_ca_certificate", "ignore_active_certificates_on_deletion", "skip_grace_period", "location", "certificate_authority_id", "pool", "deletion_protection"},
 			},
 		},
 	})
@@ -127,7 +127,7 @@ func TestAccPrivatecaCertificateAuthority_privatecaCertificateAuthoritySubordina
 				ResourceName:            "google_privateca_certificate_authority.default",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"pem_ca_certificate", "ignore_active_certificates_on_deletion", "location", "certificate_authority_id", "pool", "deletion_protection"},
+				ImportStateVerifyIgnore: []string{"pem_ca_certificate", "ignore_active_certificates_on_deletion", "skip_grace_period", "location", "certificate_authority_id", "pool", "deletion_protection"},
 			},
 		},
 	})
@@ -139,8 +139,6 @@ resource "google_privateca_certificate_authority" "root-ca" {
   pool = "%{pool_name}"
   certificate_authority_id = "tf-test-my-certificate-authority%{random_suffix}-root"
   location = "us-central1"
-  deletion_protection = false
-  ignore_active_certificates_on_deletion = true
   config {
     subject_config {
       subject {
@@ -171,6 +169,11 @@ resource "google_privateca_certificate_authority" "root-ca" {
   key_spec {
     algorithm = "RSA_PKCS1_4096_SHA256"
   }
+
+  // Disable CA deletion related safe checks for easier cleanup.
+  deletion_protection                    = false
+  skip_grace_period                      = true
+  ignore_active_certificates_on_deletion = true
 }
 
 resource "google_privateca_certificate_authority" "default" {

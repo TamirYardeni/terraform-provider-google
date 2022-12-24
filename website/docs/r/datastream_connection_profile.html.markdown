@@ -53,6 +53,46 @@ resource "google_datastream_connection_profile" "default" {
 }
 ```
 <div class = "oics-button" style="float: right; margin: 0 0 -15px">
+  <a href="https://console.cloud.google.com/cloudshell/open?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fterraform-google-modules%2Fdocs-examples.git&cloudshell_working_dir=datastream_connection_profile_bigquery_private_connection&cloudshell_image=gcr.io%2Fgraphite-cloud-shell-images%2Fterraform%3Alatest&open_in_editor=main.tf&cloudshell_print=.%2Fmotd&cloudshell_tutorial=.%2Ftutorial.md" target="_blank">
+    <img alt="Open in Cloud Shell" src="//gstatic.com/cloudssh/images/open-btn.svg" style="max-height: 44px; margin: 32px auto; max-width: 100%;">
+  </a>
+</div>
+## Example Usage - Datastream Connection Profile Bigquery Private Connection
+
+
+```hcl
+resource "google_datastream_private_connection" "private_connection" {
+	display_name          = "Connection profile"
+	location              = "us-central1"
+	private_connection_id = "my-connection"
+
+	labels = {
+		key = "value"
+	}
+
+	vpc_peering_config {
+		vpc = google_compute_network.default.id
+		subnet = "10.0.0.0/29"
+	}
+}
+
+resource "google_compute_network" "default" {
+	name = "my-network"
+}
+
+resource "google_datastream_connection_profile" "default" {
+	display_name          = "Connection profile"
+	location              = "us-central1"
+	connection_profile_id = "my-profile"
+
+	bigquery_profile {}
+
+	private_connectivity {
+		private_connection = google_datastream_private_connection.private_connection.id
+	}
+}
+```
+<div class = "oics-button" style="float: right; margin: 0 0 -15px">
   <a href="https://console.cloud.google.com/cloudshell/open?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fterraform-google-modules%2Fdocs-examples.git&cloudshell_working_dir=datastream_connection_profile_full&cloudshell_image=gcr.io%2Fgraphite-cloud-shell-images%2Fterraform%3Alatest&open_in_editor=main.tf&cloudshell_print=.%2Fmotd&cloudshell_tutorial=.%2Ftutorial.md" target="_blank">
     <img alt="Open in Cloud Shell" src="//gstatic.com/cloudssh/images/open-btn.svg" style="max-height: 44px; margin: 32px auto; max-width: 100%;">
   </a>
@@ -188,6 +228,10 @@ The following arguments are supported:
   MySQL database profile.
   Structure is [documented below](#nested_mysql_profile).
 
+* `bigquery_profile` -
+  (Optional)
+  BigQuery warehouse profile.
+
 * `postgresql_profile` -
   (Optional)
   PostgreSQL database profile.
@@ -197,6 +241,11 @@ The following arguments are supported:
   (Optional)
   Forward SSH tunnel connectivity.
   Structure is [documented below](#nested_forward_ssh_connectivity).
+
+* `private_connectivity` -
+  (Optional)
+  Private connectivity.
+  Structure is [documented below](#nested_private_connectivity).
 
 * `project` - (Optional) The ID of the project in which the resource belongs.
     If it is not provided, the provider project is used.
@@ -343,6 +392,12 @@ The following arguments are supported:
   SSH private key.
   **Note**: This property is sensitive and will not be displayed in the plan.
 
+<a name="nested_private_connectivity"></a>The `private_connectivity` block supports:
+
+* `private_connection` -
+  (Required)
+  A reference to a private connection resource. Format: `projects/{project}/locations/{location}/privateConnections/{name}`
+
 ## Attributes Reference
 
 In addition to the arguments listed above, the following computed attributes are exported:
@@ -375,4 +430,4 @@ $ terraform import google_datastream_connection_profile.default {{location}}/{{c
 
 ## User Project Overrides
 
-This resource supports [User Project Overrides](https://www.terraform.io/docs/providers/google/guides/provider_reference.html#user_project_override).
+This resource supports [User Project Overrides](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference#user_project_override).

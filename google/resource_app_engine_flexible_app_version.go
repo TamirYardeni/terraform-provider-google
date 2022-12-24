@@ -803,6 +803,7 @@ Substitute '<language>' with 'python', 'java', 'php', 'ruby', 'go' or 'nodejs'.`
 			},
 			"service_account": {
 				Type:     schema.TypeString,
+				Computed: true,
 				Optional: true,
 				Description: `The identity that the deployed version will run as. Admin API will use the App Engine Appspot service account as
 default if this field is neither provided in app.yaml file nor through CLI flag.`,
@@ -842,14 +843,16 @@ Reserved names,"default", "latest", and any name with the prefix "ah-".`,
 				Description: `Full path to the Version resource in the API. Example, "v1".`,
 			},
 			"noop_on_destroy": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: `If set to 'true', the application version will not be deleted.`,
 			},
 			"delete_service_on_destroy": {
-				Type:     schema.TypeBool,
-				Optional: true,
-				Default:  false,
+				Type:        schema.TypeBool,
+				Optional:    true,
+				Default:     false,
+				Description: `If set to 'true', the service will be deleted if it is the last version.`,
 			},
 			"project": {
 				Type:     schema.TypeString,

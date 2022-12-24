@@ -243,7 +243,7 @@ region. If not provided, defaults to the same region as the function.`,
 						"trigger": {
 							Type:        schema.TypeString,
 							Computed:    true,
-							Description: `The resource name of the Eventarc trigger.`,
+							Description: `Output only. The resource name of the Eventarc trigger.`,
 						},
 					},
 				},
@@ -273,6 +273,11 @@ region. If not provided, defaults to the same region as the function.`,
 							Description: `Whether 100% of traffic is routed to the latest revision. Defaults to true.`,
 							Default:     true,
 						},
+						"available_cpu": {
+							Type:        schema.TypeString,
+							Optional:    true,
+							Description: `The number of CPUs used in a single container instance. Default value is calculated from available memory.`,
+						},
 						"available_memory": {
 							Type:     schema.TypeString,
 							Optional: true,
@@ -298,6 +303,11 @@ supplied the value is interpreted as bytes.`,
 							Optional: true,
 							Description: `The limit on the maximum number of function instances that may coexist at a
 given time.`,
+						},
+						"max_instance_request_concurrency": {
+							Type:        schema.TypeInt,
+							Optional:    true,
+							Description: `Sets the maximum number of concurrent requests that each instance can receive. Defaults to 1.`,
 						},
 						"min_instance_count": {
 							Type:     schema.TypeInt,
@@ -561,6 +571,7 @@ func resourceCloudfunctions2functionCreate(d *schema.ResourceData, meta interfac
 	if err != nil {
 		// The resource didn't actually create
 		d.SetId("")
+
 		return fmt.Errorf("Error waiting to create function: %s", err)
 	}
 
@@ -905,11 +916,37 @@ func flattenCloudfunctions2functionBuildConfigSourceStorageSource(v interface{},
 }
 
 func flattenCloudfunctions2functionBuildConfigSourceStorageSourceBucket(v interface{}, d *schema.ResourceData, config *Config) interface{} {
-	return d.Get("build_config.0.source.0.storage_source.0.bucket")
+	// This flatten function is shared between the resource and the datasource.
+	// TF Input format: {bucket-name}
+	// GET Response format: gcf-v2-sources-{Project-number}-{location}
+	// As TF Input and GET response values have different format,
+	// we will return TF Input value to prevent state drift.
+
+	if bVal, ok := d.GetOk("build_config.0.source.0.storage_source.0.bucket"); ok {
+		return bVal
+	}
+
+	// For the datasource, there is no prior TF Input for this attribute.
+	// Hence, GET Response value is returned.
+
+	return v
 }
 
 func flattenCloudfunctions2functionBuildConfigSourceStorageSourceObject(v interface{}, d *schema.ResourceData, config *Config) interface{} {
-	return d.Get("build_config.0.source.0.storage_source.0.object")
+	// This flatten function is shared between the resource and the datasource.
+	// TF Input format: {object-name}
+	// GET Response format: {function-name}/{object-name}
+	// As TF Input and GET response values have different format,
+	// we will return TF Input value to prevent state drift.
+
+	if ObjVal, ok := d.GetOk("build_config.0.source.0.storage_source.0.object"); ok {
+		return ObjVal
+	}
+
+	// For the datasource, there is no prior TF Input for this attribute.
+	// Hence, GET Response value is returned.
+
+	return v
 }
 
 func flattenCloudfunctions2functionBuildConfigSourceStorageSourceGeneration(v interface{}, d *schema.ResourceData, config *Config) interface{} {
@@ -1009,6 +1046,10 @@ func flattenCloudfunctions2functionServiceConfig(v interface{}, d *schema.Resour
 		flattenCloudfunctions2functionServiceConfigTimeoutSeconds(original["timeoutSeconds"], d, config)
 	transformed["available_memory"] =
 		flattenCloudfunctions2functionServiceConfigAvailableMemory(original["availableMemory"], d, config)
+	transformed["max_instance_request_concurrency"] =
+		flattenCloudfunctions2functionServiceConfigMaxInstanceRequestConcurrency(original["maxInstanceRequestConcurrency"], d, config)
+	transformed["available_cpu"] =
+		flattenCloudfunctions2functionServiceConfigAvailableCpu(original["availableCpu"], d, config)
 	transformed["environment_variables"] =
 		flattenCloudfunctions2functionServiceConfigEnvironmentVariables(original["environmentVariables"], d, config)
 	transformed["max_instance_count"] =
@@ -1057,6 +1098,27 @@ func flattenCloudfunctions2functionServiceConfigTimeoutSeconds(v interface{}, d 
 }
 
 func flattenCloudfunctions2functionServiceConfigAvailableMemory(v interface{}, d *schema.ResourceData, config *Config) interface{} {
+	return v
+}
+
+func flattenCloudfunctions2functionServiceConfigMaxInstanceRequestConcurrency(v interface{}, d *schema.ResourceData, config *Config) interface{} {
+	// Handles the string fixed64 format
+	if strVal, ok := v.(string); ok {
+		if intVal, err := stringToFixed64(strVal); err == nil {
+			return intVal
+		}
+	}
+
+	// number values are represented as float64
+	if floatVal, ok := v.(float64); ok {
+		intVal := int(floatVal)
+		return intVal
+	}
+
+	return v // let terraform core handle it otherwise
+}
+
+func flattenCloudfunctions2functionServiceConfigAvailableCpu(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	return v
 }
 
@@ -1602,6 +1664,20 @@ func expandCloudfunctions2functionServiceConfig(v interface{}, d TerraformResour
 		transformed["availableMemory"] = transformedAvailableMemory
 	}
 
+	transformedMaxInstanceRequestConcurrency, err := expandCloudfunctions2functionServiceConfigMaxInstanceRequestConcurrency(original["max_instance_request_concurrency"], d, config)
+	if err != nil {
+		return nil, err
+	} else if val := reflect.ValueOf(transformedMaxInstanceRequestConcurrency); val.IsValid() && !isEmptyValue(val) {
+		transformed["maxInstanceRequestConcurrency"] = transformedMaxInstanceRequestConcurrency
+	}
+
+	transformedAvailableCpu, err := expandCloudfunctions2functionServiceConfigAvailableCpu(original["available_cpu"], d, config)
+	if err != nil {
+		return nil, err
+	} else if val := reflect.ValueOf(transformedAvailableCpu); val.IsValid() && !isEmptyValue(val) {
+		transformed["availableCpu"] = transformedAvailableCpu
+	}
+
 	transformedEnvironmentVariables, err := expandCloudfunctions2functionServiceConfigEnvironmentVariables(original["environment_variables"], d, config)
 	if err != nil {
 		return nil, err
@@ -1698,6 +1774,14 @@ func expandCloudfunctions2functionServiceConfigTimeoutSeconds(v interface{}, d T
 }
 
 func expandCloudfunctions2functionServiceConfigAvailableMemory(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
+	return v, nil
+}
+
+func expandCloudfunctions2functionServiceConfigMaxInstanceRequestConcurrency(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
+	return v, nil
+}
+
+func expandCloudfunctions2functionServiceConfigAvailableCpu(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
 	return v, nil
 }
 

@@ -128,8 +128,10 @@ resource "google_cloudfunctions2_function" "function" {
   service_config {
     max_instance_count  = 3
     min_instance_count = 1
-    available_memory    = "256M"
+    available_memory    = "4Gi"
     timeout_seconds     = 60
+    max_instance_request_concurrency = 80
+    available_cpu = "4"
     environment_variables = {
         SERVICE_CONFIG_TEST = "config_test"
     }
@@ -675,6 +677,14 @@ The following arguments are supported:
   Defaults to 256M. Supported units are k, M, G, Mi, Gi. If no unit is
   supplied the value is interpreted as bytes.
 
+* `max_instance_request_concurrency` -
+  (Optional)
+  Sets the maximum number of concurrent requests that each instance can receive. Defaults to 1.
+
+* `available_cpu` -
+  (Optional)
+  The number of CPUs used in a single container instance. Default value is calculated from available memory.
+
 * `environment_variables` -
   (Optional)
   Environment variables that shall be available during function execution.
@@ -780,7 +790,7 @@ The following arguments are supported:
 <a name="nested_event_trigger"></a>The `event_trigger` block supports:
 
 * `trigger` -
-  The resource name of the Eventarc trigger.
+  Output only. The resource name of the Eventarc trigger.
 
 * `trigger_region` -
   (Optional)
@@ -873,4 +883,4 @@ $ terraform import google_cloudfunctions2_function.default {{location}}/{{name}}
 
 ## User Project Overrides
 
-This resource supports [User Project Overrides](https://www.terraform.io/docs/providers/google/guides/provider_reference.html#user_project_override).
+This resource supports [User Project Overrides](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference#user_project_override).

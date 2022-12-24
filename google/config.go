@@ -177,7 +177,9 @@ type Config struct {
 	ApigeeBasePath               string
 	AppEngineBasePath            string
 	ArtifactRegistryBasePath     string
+	BeyondcorpBasePath           string
 	BigQueryBasePath             string
+	BigqueryAnalyticsHubBasePath string
 	BigqueryConnectionBasePath   string
 	BigqueryDataTransferBasePath string
 	BigqueryReservationBasePath  string
@@ -190,8 +192,10 @@ type Config struct {
 	CloudFunctionsBasePath       string
 	Cloudfunctions2BasePath      string
 	CloudIdentityBasePath        string
+	CloudIdsBasePath             string
 	CloudIotBasePath             string
 	CloudRunBasePath             string
+	CloudRunV2BasePath           string
 	CloudSchedulerBasePath       string
 	CloudTasksBasePath           string
 	ComputeBasePath              string
@@ -215,6 +219,7 @@ type Config struct {
 	GKEHubBasePath               string
 	HealthcareBasePath           string
 	IAMBetaBasePath              string
+	IAMWorkforcePoolBasePath     string
 	IapBasePath                  string
 	IdentityPlatformBasePath     string
 	KMSBasePath                  string
@@ -240,6 +245,7 @@ type Config struct {
 	SpannerBasePath              string
 	SQLBasePath                  string
 	StorageBasePath              string
+	StorageTransferBasePath      string
 	TagsBasePath                 string
 	TPUBasePath                  string
 	VertexAIBasePath             string
@@ -255,7 +261,6 @@ type Config struct {
 	IAMBasePath               string
 	CloudIoTBasePath          string
 	ServiceNetworkingBasePath string
-	StorageTransferBasePath   string
 	BigtableAdminBasePath     string
 
 	// dcl
@@ -272,7 +277,9 @@ const ActiveDirectoryBasePathKey = "ActiveDirectory"
 const ApigeeBasePathKey = "Apigee"
 const AppEngineBasePathKey = "AppEngine"
 const ArtifactRegistryBasePathKey = "ArtifactRegistry"
+const BeyondcorpBasePathKey = "Beyondcorp"
 const BigQueryBasePathKey = "BigQuery"
+const BigqueryAnalyticsHubBasePathKey = "BigqueryAnalyticsHub"
 const BigqueryConnectionBasePathKey = "BigqueryConnection"
 const BigqueryDataTransferBasePathKey = "BigqueryDataTransfer"
 const BigqueryReservationBasePathKey = "BigqueryReservation"
@@ -285,8 +292,10 @@ const CloudBuildBasePathKey = "CloudBuild"
 const CloudFunctionsBasePathKey = "CloudFunctions"
 const Cloudfunctions2BasePathKey = "Cloudfunctions2"
 const CloudIdentityBasePathKey = "CloudIdentity"
+const CloudIdsBasePathKey = "CloudIds"
 const CloudIotBasePathKey = "CloudIot"
 const CloudRunBasePathKey = "CloudRun"
+const CloudRunV2BasePathKey = "CloudRunV2"
 const CloudSchedulerBasePathKey = "CloudScheduler"
 const CloudTasksBasePathKey = "CloudTasks"
 const ComputeBasePathKey = "Compute"
@@ -310,6 +319,7 @@ const GameServicesBasePathKey = "GameServices"
 const GKEHubBasePathKey = "GKEHub"
 const HealthcareBasePathKey = "Healthcare"
 const IAMBetaBasePathKey = "IAMBeta"
+const IAMWorkforcePoolBasePathKey = "IAMWorkforcePool"
 const IapBasePathKey = "Iap"
 const IdentityPlatformBasePathKey = "IdentityPlatform"
 const KMSBasePathKey = "KMS"
@@ -335,6 +345,7 @@ const SourceRepoBasePathKey = "SourceRepo"
 const SpannerBasePathKey = "Spanner"
 const SQLBasePathKey = "SQL"
 const StorageBasePathKey = "Storage"
+const StorageTransferBasePathKey = "StorageTransfer"
 const TagsBasePathKey = "Tags"
 const TPUBasePathKey = "TPU"
 const VertexAIBasePathKey = "VertexAI"
@@ -348,7 +359,6 @@ const IAMBasePathKey = "IAM"
 const IamCredentialsBasePathKey = "IamCredentials"
 const ResourceManagerV3BasePathKey = "ResourceManagerV3"
 const ServiceNetworkingBasePathKey = "ServiceNetworking"
-const StorageTransferBasePathKey = "StorageTransfer"
 const BigtableAdminBasePathKey = "BigtableAdmin"
 const ContainerAwsBasePathKey = "ContainerAws"
 const ContainerAzureBasePathKey = "ContainerAzure"
@@ -361,7 +371,9 @@ var DefaultBasePaths = map[string]string{
 	ApigeeBasePathKey:               "https://apigee.googleapis.com/v1/",
 	AppEngineBasePathKey:            "https://appengine.googleapis.com/v1/",
 	ArtifactRegistryBasePathKey:     "https://artifactregistry.googleapis.com/v1/",
+	BeyondcorpBasePathKey:           "https://beyondcorp.googleapis.com/v1/",
 	BigQueryBasePathKey:             "https://bigquery.googleapis.com/bigquery/v2/",
+	BigqueryAnalyticsHubBasePathKey: "https://analyticshub.googleapis.com/v1/",
 	BigqueryConnectionBasePathKey:   "https://bigqueryconnection.googleapis.com/v1/",
 	BigqueryDataTransferBasePathKey: "https://bigquerydatatransfer.googleapis.com/v1/",
 	BigqueryReservationBasePathKey:  "https://bigqueryreservation.googleapis.com/v1/",
@@ -374,8 +386,10 @@ var DefaultBasePaths = map[string]string{
 	CloudFunctionsBasePathKey:       "https://cloudfunctions.googleapis.com/v1/",
 	Cloudfunctions2BasePathKey:      "https://cloudfunctions.googleapis.com/v2/",
 	CloudIdentityBasePathKey:        "https://cloudidentity.googleapis.com/v1/",
+	CloudIdsBasePathKey:             "https://ids.googleapis.com/v1/",
 	CloudIotBasePathKey:             "https://cloudiot.googleapis.com/v1/",
 	CloudRunBasePathKey:             "https://{{location}}-run.googleapis.com/",
+	CloudRunV2BasePathKey:           "https://run.googleapis.com/v2/",
 	CloudSchedulerBasePathKey:       "https://cloudscheduler.googleapis.com/v1/",
 	CloudTasksBasePathKey:           "https://cloudtasks.googleapis.com/v2/",
 	ComputeBasePathKey:              "https://compute.googleapis.com/compute/v1/",
@@ -399,6 +413,7 @@ var DefaultBasePaths = map[string]string{
 	GKEHubBasePathKey:               "https://gkehub.googleapis.com/v1/",
 	HealthcareBasePathKey:           "https://healthcare.googleapis.com/v1/",
 	IAMBetaBasePathKey:              "https://iam.googleapis.com/v1/",
+	IAMWorkforcePoolBasePathKey:     "https://iam.googleapis.com/v1/",
 	IapBasePathKey:                  "https://iap.googleapis.com/v1/",
 	IdentityPlatformBasePathKey:     "https://identitytoolkit.googleapis.com/v2/",
 	KMSBasePathKey:                  "https://cloudkms.googleapis.com/v1/",
@@ -424,6 +439,7 @@ var DefaultBasePaths = map[string]string{
 	SpannerBasePathKey:              "https://spanner.googleapis.com/v1/",
 	SQLBasePathKey:                  "https://sqladmin.googleapis.com/sql/v1beta4/",
 	StorageBasePathKey:              "https://storage.googleapis.com/storage/v1/",
+	StorageTransferBasePathKey:      "https://storagetransfer.googleapis.com/v1/",
 	TagsBasePathKey:                 "https://cloudresourcemanager.googleapis.com/v3/",
 	TPUBasePathKey:                  "https://tpu.googleapis.com/v1/",
 	VertexAIBasePathKey:             "https://{{region}}-aiplatform.googleapis.com/v1/",
@@ -437,7 +453,6 @@ var DefaultBasePaths = map[string]string{
 	IamCredentialsBasePathKey:       "https://iamcredentials.googleapis.com/v1/",
 	ResourceManagerV3BasePathKey:    "https://cloudresourcemanager.googleapis.com/v3/",
 	ServiceNetworkingBasePathKey:    "https://servicenetworking.googleapis.com/v1/",
-	StorageTransferBasePathKey:      "https://storagetransfer.googleapis.com/v1/",
 	BigtableAdminBasePathKey:        "https://bigtableadmin.googleapis.com/v2/",
 	ContainerAwsBasePathKey:         "https://{{location}}-gkemulticloud.googleapis.com/v1/",
 	ContainerAzureBasePathKey:       "https://{{location}}-gkemulticloud.googleapis.com/v1/",
@@ -1212,7 +1227,9 @@ func ConfigureBasePaths(c *Config) {
 	c.ApigeeBasePath = DefaultBasePaths[ApigeeBasePathKey]
 	c.AppEngineBasePath = DefaultBasePaths[AppEngineBasePathKey]
 	c.ArtifactRegistryBasePath = DefaultBasePaths[ArtifactRegistryBasePathKey]
+	c.BeyondcorpBasePath = DefaultBasePaths[BeyondcorpBasePathKey]
 	c.BigQueryBasePath = DefaultBasePaths[BigQueryBasePathKey]
+	c.BigqueryAnalyticsHubBasePath = DefaultBasePaths[BigqueryAnalyticsHubBasePathKey]
 	c.BigqueryConnectionBasePath = DefaultBasePaths[BigqueryConnectionBasePathKey]
 	c.BigqueryDataTransferBasePath = DefaultBasePaths[BigqueryDataTransferBasePathKey]
 	c.BigqueryReservationBasePath = DefaultBasePaths[BigqueryReservationBasePathKey]
@@ -1225,8 +1242,10 @@ func ConfigureBasePaths(c *Config) {
 	c.CloudFunctionsBasePath = DefaultBasePaths[CloudFunctionsBasePathKey]
 	c.Cloudfunctions2BasePath = DefaultBasePaths[Cloudfunctions2BasePathKey]
 	c.CloudIdentityBasePath = DefaultBasePaths[CloudIdentityBasePathKey]
+	c.CloudIdsBasePath = DefaultBasePaths[CloudIdsBasePathKey]
 	c.CloudIotBasePath = DefaultBasePaths[CloudIotBasePathKey]
 	c.CloudRunBasePath = DefaultBasePaths[CloudRunBasePathKey]
+	c.CloudRunV2BasePath = DefaultBasePaths[CloudRunV2BasePathKey]
 	c.CloudSchedulerBasePath = DefaultBasePaths[CloudSchedulerBasePathKey]
 	c.CloudTasksBasePath = DefaultBasePaths[CloudTasksBasePathKey]
 	c.ComputeBasePath = DefaultBasePaths[ComputeBasePathKey]
@@ -1250,6 +1269,7 @@ func ConfigureBasePaths(c *Config) {
 	c.GKEHubBasePath = DefaultBasePaths[GKEHubBasePathKey]
 	c.HealthcareBasePath = DefaultBasePaths[HealthcareBasePathKey]
 	c.IAMBetaBasePath = DefaultBasePaths[IAMBetaBasePathKey]
+	c.IAMWorkforcePoolBasePath = DefaultBasePaths[IAMWorkforcePoolBasePathKey]
 	c.IapBasePath = DefaultBasePaths[IapBasePathKey]
 	c.IdentityPlatformBasePath = DefaultBasePaths[IdentityPlatformBasePathKey]
 	c.KMSBasePath = DefaultBasePaths[KMSBasePathKey]
@@ -1275,6 +1295,7 @@ func ConfigureBasePaths(c *Config) {
 	c.SpannerBasePath = DefaultBasePaths[SpannerBasePathKey]
 	c.SQLBasePath = DefaultBasePaths[SQLBasePathKey]
 	c.StorageBasePath = DefaultBasePaths[StorageBasePathKey]
+	c.StorageTransferBasePath = DefaultBasePaths[StorageTransferBasePathKey]
 	c.TagsBasePath = DefaultBasePaths[TagsBasePathKey]
 	c.TPUBasePath = DefaultBasePaths[TPUBasePathKey]
 	c.VertexAIBasePath = DefaultBasePaths[VertexAIBasePathKey]
@@ -1292,6 +1313,5 @@ func ConfigureBasePaths(c *Config) {
 	c.IAMBasePath = DefaultBasePaths[IAMBasePathKey]
 	c.ServiceNetworkingBasePath = DefaultBasePaths[ServiceNetworkingBasePathKey]
 	c.BigQueryBasePath = DefaultBasePaths[BigQueryBasePathKey]
-	c.StorageTransferBasePath = DefaultBasePaths[StorageTransferBasePathKey]
 	c.BigtableAdminBasePath = DefaultBasePaths[BigtableAdminBasePathKey]
 }

@@ -89,6 +89,9 @@ In addition to the arguments listed above, the following computed attributes are
   The resource name of the SecretVersion. Format:
   `projects/{{project}}/secrets/{{secret_id}}/versions/{{version}}`
 
+* `version` -
+  The version of the Secret.
+
 * `create_time` -
   The time at which the Secret was created.
 
@@ -110,5 +113,5 @@ This resource provides the following
 SecretVersion can be imported using any of these accepted formats:
 
 ```
-$ terraform import google_secret_manager_secret_version.default {{name}}/{{name}}
+$ terraform import google_secret_manager_secret_version.default projects/{{project}}/secrets/{{secret_id}}/versions/{{version}}
 ```

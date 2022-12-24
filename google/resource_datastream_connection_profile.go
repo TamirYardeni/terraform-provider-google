@@ -59,6 +59,16 @@ func resourceDatastreamConnectionProfile() *schema.Resource {
 				ForceNew:    true,
 				Description: `The name of the location this repository is located in.`,
 			},
+			"bigquery_profile": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: `BigQuery warehouse profile.`,
+				MaxItems:    1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{},
+				},
+				ExactlyOneOf: []string{"oracle_profile", "gcs_profile", "mysql_profile", "bigquery_profile", "postgresql_profile"},
+			},
 			"forward_ssh_connectivity": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -100,6 +110,7 @@ func resourceDatastreamConnectionProfile() *schema.Resource {
 						},
 					},
 				},
+				ConflictsWith: []string{"private_connectivity"},
 			},
 			"gcs_profile": {
 				Type:        schema.TypeList,
@@ -120,7 +131,7 @@ func resourceDatastreamConnectionProfile() *schema.Resource {
 						},
 					},
 				},
-				ExactlyOneOf: []string{"oracle_profile", "gcs_profile", "mysql_profile", "postgresql_profile"},
+				ExactlyOneOf: []string{"oracle_profile", "gcs_profile", "mysql_profile", "bigquery_profile", "postgresql_profile"},
 			},
 			"labels": {
 				Type:        schema.TypeMap,
@@ -212,7 +223,7 @@ If this field is used then the 'client_certificate' and the
 						},
 					},
 				},
-				ExactlyOneOf: []string{"oracle_profile", "gcs_profile", "mysql_profile", "postgresql_profile"},
+				ExactlyOneOf: []string{"oracle_profile", "gcs_profile", "mysql_profile", "bigquery_profile", "postgresql_profile"},
 			},
 			"oracle_profile": {
 				Type:        schema.TypeList,
@@ -256,7 +267,7 @@ If this field is used then the 'client_certificate' and the
 						},
 					},
 				},
-				ExactlyOneOf: []string{"oracle_profile", "gcs_profile", "mysql_profile", "postgresql_profile"},
+				ExactlyOneOf: []string{"oracle_profile", "gcs_profile", "mysql_profile", "bigquery_profile", "postgresql_profile"},
 			},
 			"postgresql_profile": {
 				Type:        schema.TypeList,
@@ -294,7 +305,23 @@ If this field is used then the 'client_certificate' and the
 						},
 					},
 				},
-				ExactlyOneOf: []string{"oracle_profile", "gcs_profile", "mysql_profile", "postgresql_profile"},
+				ExactlyOneOf: []string{"oracle_profile", "gcs_profile", "mysql_profile", "bigquery_profile", "postgresql_profile"},
+			},
+			"private_connectivity": {
+				Type:        schema.TypeList,
+				Optional:    true,
+				Description: `Private connectivity.`,
+				MaxItems:    1,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"private_connection": {
+							Type:        schema.TypeString,
+							Required:    true,
+							Description: `A reference to a private connection resource. Format: 'projects/{project}/locations/{location}/privateConnections/{name}'`,
+						},
+					},
+				},
+				ConflictsWith: []string{"forward_ssh_connectivity"},
 			},
 			"name": {
 				Type:        schema.TypeString,
@@ -350,6 +377,12 @@ func resourceDatastreamConnectionProfileCreate(d *schema.ResourceData, meta inte
 	} else if v, ok := d.GetOkExists("mysql_profile"); !isEmptyValue(reflect.ValueOf(mysqlProfileProp)) && (ok || !reflect.DeepEqual(v, mysqlProfileProp)) {
 		obj["mysqlProfile"] = mysqlProfileProp
 	}
+	bigqueryProfileProp, err := expandDatastreamConnectionProfileBigqueryProfile(d.Get("bigquery_profile"), d, config)
+	if err != nil {
+		return err
+	} else if v, ok := d.GetOkExists("bigquery_profile"); ok || !reflect.DeepEqual(v, bigqueryProfileProp) {
+		obj["bigqueryProfile"] = bigqueryProfileProp
+	}
 	postgresqlProfileProp, err := expandDatastreamConnectionProfilePostgresqlProfile(d.Get("postgresql_profile"), d, config)
 	if err != nil {
 		return err
@@ -361,6 +394,12 @@ func resourceDatastreamConnectionProfileCreate(d *schema.ResourceData, meta inte
 		return err
 	} else if v, ok := d.GetOkExists("forward_ssh_connectivity"); !isEmptyValue(reflect.ValueOf(forwardSshConnectivityProp)) && (ok || !reflect.DeepEqual(v, forwardSshConnectivityProp)) {
 		obj["forwardSshConnectivity"] = forwardSshConnectivityProp
+	}
+	privateConnectivityProp, err := expandDatastreamConnectionProfilePrivateConnectivity(d.Get("private_connectivity"), d, config)
+	if err != nil {
+		return err
+	} else if v, ok := d.GetOkExists("private_connectivity"); !isEmptyValue(reflect.ValueOf(privateConnectivityProp)) && (ok || !reflect.DeepEqual(v, privateConnectivityProp)) {
+		obj["privateConnectivity"] = privateConnectivityProp
 	}
 
 	url, err := replaceVars(d, config, "{{DatastreamBasePath}}projects/{{project}}/locations/{{location}}/connectionProfiles?connectionProfileId={{connection_profile_id}}")
@@ -403,6 +442,7 @@ func resourceDatastreamConnectionProfileCreate(d *schema.ResourceData, meta inte
 	if err != nil {
 		// The resource didn't actually create
 		d.SetId("")
+
 		return fmt.Errorf("Error waiting to create ConnectionProfile: %s", err)
 	}
 
@@ -474,10 +514,16 @@ func resourceDatastreamConnectionProfileRead(d *schema.ResourceData, meta interf
 	if err := d.Set("mysql_profile", flattenDatastreamConnectionProfileMysqlProfile(res["mysqlProfile"], d, config)); err != nil {
 		return fmt.Errorf("Error reading ConnectionProfile: %s", err)
 	}
+	if err := d.Set("bigquery_profile", flattenDatastreamConnectionProfileBigqueryProfile(res["bigqueryProfile"], d, config)); err != nil {
+		return fmt.Errorf("Error reading ConnectionProfile: %s", err)
+	}
 	if err := d.Set("postgresql_profile", flattenDatastreamConnectionProfilePostgresqlProfile(res["postgresqlProfile"], d, config)); err != nil {
 		return fmt.Errorf("Error reading ConnectionProfile: %s", err)
 	}
 	if err := d.Set("forward_ssh_connectivity", flattenDatastreamConnectionProfileForwardSshConnectivity(res["forwardSshConnectivity"], d, config)); err != nil {
+		return fmt.Errorf("Error reading ConnectionProfile: %s", err)
+	}
+	if err := d.Set("private_connectivity", flattenDatastreamConnectionProfilePrivateConnectivity(res["privateConnectivity"], d, config)); err != nil {
 		return fmt.Errorf("Error reading ConnectionProfile: %s", err)
 	}
 
@@ -530,6 +576,12 @@ func resourceDatastreamConnectionProfileUpdate(d *schema.ResourceData, meta inte
 	} else if v, ok := d.GetOkExists("mysql_profile"); !isEmptyValue(reflect.ValueOf(v)) && (ok || !reflect.DeepEqual(v, mysqlProfileProp)) {
 		obj["mysqlProfile"] = mysqlProfileProp
 	}
+	bigqueryProfileProp, err := expandDatastreamConnectionProfileBigqueryProfile(d.Get("bigquery_profile"), d, config)
+	if err != nil {
+		return err
+	} else if v, ok := d.GetOkExists("bigquery_profile"); ok || !reflect.DeepEqual(v, bigqueryProfileProp) {
+		obj["bigqueryProfile"] = bigqueryProfileProp
+	}
 	postgresqlProfileProp, err := expandDatastreamConnectionProfilePostgresqlProfile(d.Get("postgresql_profile"), d, config)
 	if err != nil {
 		return err
@@ -541,6 +593,12 @@ func resourceDatastreamConnectionProfileUpdate(d *schema.ResourceData, meta inte
 		return err
 	} else if v, ok := d.GetOkExists("forward_ssh_connectivity"); !isEmptyValue(reflect.ValueOf(v)) && (ok || !reflect.DeepEqual(v, forwardSshConnectivityProp)) {
 		obj["forwardSshConnectivity"] = forwardSshConnectivityProp
+	}
+	privateConnectivityProp, err := expandDatastreamConnectionProfilePrivateConnectivity(d.Get("private_connectivity"), d, config)
+	if err != nil {
+		return err
+	} else if v, ok := d.GetOkExists("private_connectivity"); !isEmptyValue(reflect.ValueOf(v)) && (ok || !reflect.DeepEqual(v, privateConnectivityProp)) {
+		obj["privateConnectivity"] = privateConnectivityProp
 	}
 
 	url, err := replaceVars(d, config, "{{DatastreamBasePath}}projects/{{project}}/locations/{{location}}/connectionProfiles/{{connection_profile_id}}")
@@ -571,12 +629,20 @@ func resourceDatastreamConnectionProfileUpdate(d *schema.ResourceData, meta inte
 		updateMask = append(updateMask, "mysqlProfile")
 	}
 
+	if d.HasChange("bigquery_profile") {
+		updateMask = append(updateMask, "bigqueryProfile")
+	}
+
 	if d.HasChange("postgresql_profile") {
 		updateMask = append(updateMask, "postgresqlProfile")
 	}
 
 	if d.HasChange("forward_ssh_connectivity") {
 		updateMask = append(updateMask, "forwardSshConnectivity")
+	}
+
+	if d.HasChange("private_connectivity") {
+		updateMask = append(updateMask, "privateConnectivity")
 	}
 	// updateMask is a URL parameter but not present in the schema, so replaceVars
 	// won't set it
@@ -867,6 +933,14 @@ func flattenDatastreamConnectionProfileMysqlProfileSslConfigCaCertificateSet(v i
 	return v
 }
 
+func flattenDatastreamConnectionProfileBigqueryProfile(v interface{}, d *schema.ResourceData, config *Config) interface{} {
+	if v == nil {
+		return nil
+	}
+	transformed := make(map[string]interface{})
+	return []interface{}{transformed}
+}
+
 func flattenDatastreamConnectionProfilePostgresqlProfile(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	if v == nil {
 		return nil
@@ -973,6 +1047,23 @@ func flattenDatastreamConnectionProfileForwardSshConnectivityPassword(v interfac
 
 func flattenDatastreamConnectionProfileForwardSshConnectivityPrivateKey(v interface{}, d *schema.ResourceData, config *Config) interface{} {
 	return d.Get("forward_ssh_connectivity.0.private_key")
+}
+
+func flattenDatastreamConnectionProfilePrivateConnectivity(v interface{}, d *schema.ResourceData, config *Config) interface{} {
+	if v == nil {
+		return nil
+	}
+	original := v.(map[string]interface{})
+	if len(original) == 0 {
+		return nil
+	}
+	transformed := make(map[string]interface{})
+	transformed["private_connection"] =
+		flattenDatastreamConnectionProfilePrivateConnectivityPrivateConnection(original["privateConnection"], d, config)
+	return []interface{}{transformed}
+}
+func flattenDatastreamConnectionProfilePrivateConnectivityPrivateConnection(v interface{}, d *schema.ResourceData, config *Config) interface{} {
+	return v
 }
 
 func expandDatastreamConnectionProfileLabels(v interface{}, d TerraformResourceData, config *Config) (map[string]string, error) {
@@ -1250,6 +1341,21 @@ func expandDatastreamConnectionProfileMysqlProfileSslConfigCaCertificateSet(v in
 	return v, nil
 }
 
+func expandDatastreamConnectionProfileBigqueryProfile(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
+	l := v.([]interface{})
+	if len(l) == 0 {
+		return nil, nil
+	}
+
+	if l[0] == nil {
+		transformed := make(map[string]interface{})
+		return transformed, nil
+	}
+	transformed := make(map[string]interface{})
+
+	return transformed, nil
+}
+
 func expandDatastreamConnectionProfilePostgresqlProfile(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
 	l := v.([]interface{})
 	if len(l) == 0 || l[0] == nil {
@@ -1381,5 +1487,28 @@ func expandDatastreamConnectionProfileForwardSshConnectivityPassword(v interface
 }
 
 func expandDatastreamConnectionProfileForwardSshConnectivityPrivateKey(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
+	return v, nil
+}
+
+func expandDatastreamConnectionProfilePrivateConnectivity(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
+	l := v.([]interface{})
+	if len(l) == 0 || l[0] == nil {
+		return nil, nil
+	}
+	raw := l[0]
+	original := raw.(map[string]interface{})
+	transformed := make(map[string]interface{})
+
+	transformedPrivateConnection, err := expandDatastreamConnectionProfilePrivateConnectivityPrivateConnection(original["private_connection"], d, config)
+	if err != nil {
+		return nil, err
+	} else if val := reflect.ValueOf(transformedPrivateConnection); val.IsValid() && !isEmptyValue(val) {
+		transformed["privateConnection"] = transformedPrivateConnection
+	}
+
+	return transformed, nil
+}
+
+func expandDatastreamConnectionProfilePrivateConnectivityPrivateConnection(v interface{}, d TerraformResourceData, config *Config) (interface{}, error) {
 	return v, nil
 }

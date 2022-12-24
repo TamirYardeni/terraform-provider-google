@@ -137,6 +137,86 @@ resource "google_compute_network" "network-2" {
 }
 ```
 <div class = "oics-button" style="float: right; margin: 0 0 -15px">
+  <a href="https://console.cloud.google.com/cloudshell/open?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fterraform-google-modules%2Fdocs-examples.git&cloudshell_working_dir=dns_managed_zone_private_gke&cloudshell_image=gcr.io%2Fgraphite-cloud-shell-images%2Fterraform%3Alatest&open_in_editor=main.tf&cloudshell_print=.%2Fmotd&cloudshell_tutorial=.%2Ftutorial.md" target="_blank">
+    <img alt="Open in Cloud Shell" src="//gstatic.com/cloudssh/images/open-btn.svg" style="max-height: 44px; margin: 32px auto; max-width: 100%;">
+  </a>
+</div>
+## Example Usage - Dns Managed Zone Private Gke
+
+
+```hcl
+resource "google_dns_managed_zone" "private-zone-gke" {
+  name        = "private-zone"
+  dns_name    = "private.example.com."
+  description = "Example private DNS zone"
+  labels = {
+    foo = "bar"
+  }
+
+  visibility = "private"
+
+  private_visibility_config {
+    networks {
+      network_url = google_compute_network.network-1.id
+    }
+    gke_clusters {
+      gke_cluster_name = google_container_cluster.cluster-1.id
+    }
+  }
+}
+
+resource "google_compute_network" "network-1" {
+  name                    = "network-1"
+  auto_create_subnetworks = false
+}
+
+resource "google_compute_subnetwork" "subnetwork-1" {
+  name                     = google_compute_network.network-1.name
+  network                  = google_compute_network.network-1.name
+  ip_cidr_range            = "10.0.36.0/24"
+  region                   = "us-central1"
+  private_ip_google_access = true
+
+  secondary_ip_range {
+    range_name    = "pod"
+    ip_cidr_range = "10.0.0.0/19"
+  }
+
+  secondary_ip_range {
+    range_name    = "svc"
+    ip_cidr_range = "10.0.32.0/22"
+  }
+}
+
+resource "google_container_cluster" "cluster-1" {
+  name               = "cluster-1"
+  location           = "us-central1-c"
+  initial_node_count = 1
+
+  networking_mode = "VPC_NATIVE"
+  default_snat_status {
+    disabled = true
+  }
+  network    = google_compute_network.network-1.name
+  subnetwork = google_compute_subnetwork.subnetwork-1.name
+
+  private_cluster_config {
+    enable_private_endpoint = true
+    enable_private_nodes    = true
+    master_ipv4_cidr_block  = "10.42.0.0/28"
+    master_global_access_config {
+      enabled = true
+	}
+  }
+  master_authorized_networks_config {
+  }
+  ip_allocation_policy {
+    cluster_secondary_range_name  = google_compute_subnetwork.subnetwork-1.secondary_ip_range[0].range_name
+    services_secondary_range_name = google_compute_subnetwork.subnetwork-1.secondary_ip_range[1].range_name
+  }
+}
+```
+<div class = "oics-button" style="float: right; margin: 0 0 -15px">
   <a href="https://console.cloud.google.com/cloudshell/open?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fterraform-google-modules%2Fdocs-examples.git&cloudshell_working_dir=dns_managed_zone_private_peering&cloudshell_image=gcr.io%2Fgraphite-cloud-shell-images%2Fterraform%3Alatest&open_in_editor=main.tf&cloudshell_print=.%2Fmotd&cloudshell_tutorial=.%2Ftutorial.md" target="_blank">
     <img alt="Open in Cloud Shell" src="//gstatic.com/cloudssh/images/open-btn.svg" style="max-height: 44px; margin: 32px auto; max-width: 100%;">
   </a>
@@ -214,6 +294,28 @@ resource "google_compute_network" "network" {
   auto_create_subnetworks = false
 }
 ```
+<div class = "oics-button" style="float: right; margin: 0 0 -15px">
+  <a href="https://console.cloud.google.com/cloudshell/open?cloudshell_git_repo=https%3A%2F%2Fgithub.com%2Fterraform-google-modules%2Fdocs-examples.git&cloudshell_working_dir=dns_managed_zone_cloud_logging&cloudshell_image=gcr.io%2Fgraphite-cloud-shell-images%2Fterraform%3Alatest&open_in_editor=main.tf&cloudshell_print=.%2Fmotd&cloudshell_tutorial=.%2Ftutorial.md" target="_blank">
+    <img alt="Open in Cloud Shell" src="//gstatic.com/cloudssh/images/open-btn.svg" style="max-height: 44px; margin: 32px auto; max-width: 100%;">
+  </a>
+</div>
+## Example Usage - Dns Managed Zone Cloud Logging
+
+
+```hcl
+resource "google_dns_managed_zone" "cloud-logging-enabled-zone" {
+  name        = "cloud-logging-enabled-zone"
+  dns_name    = "services.example.com."
+  description = "Example cloud logging enabled DNS zone"
+  labels = {
+    foo = "bar"
+  }
+
+  cloud_logging_config {
+    enable_logging = true
+  }
+}
+```
 
 ## Argument Reference
 
@@ -283,6 +385,11 @@ The following arguments are supported:
   The presence of this field indicates that this zone is backed by Service Directory. The value of this field contains information related to the namespace associated with the zone.
   Structure is [documented below](#nested_service_directory_config).
 
+* `cloud_logging_config` -
+  (Optional)
+  Cloud logging configuration
+  Structure is [documented below](#nested_cloud_logging_config).
+
 * `project` - (Optional) The ID of the project in which the resource belongs.
     If it is not provided, the provider project is used.
 
@@ -341,6 +448,11 @@ The following arguments are supported:
 
 <a name="nested_private_visibility_config"></a>The `private_visibility_config` block supports:
 
+* `gke_clusters` -
+  (Optional)
+  The list of Google Kubernetes Engine clusters that can see this zone.
+  Structure is [documented below](#nested_gke_clusters).
+
 * `networks` -
   (Required)
   The list of VPC networks that can see this zone. Until the provider updates to use the Terraform 0.12 SDK in a future release, you
@@ -350,6 +462,14 @@ The following arguments are supported:
   blocks in an update and then apply another update adding all of them back simultaneously.
   Structure is [documented below](#nested_networks).
 
+
+<a name="nested_gke_clusters"></a>The `gke_clusters` block supports:
+
+* `gke_cluster_name` -
+  (Required)
+  The resource name of the cluster to bind this ManagedZone to.  
+  This should be specified in the format like  
+  `projects/*/locations/*/clusters/*`
 
 <a name="nested_networks"></a>The `networks` block supports:
 
@@ -416,6 +536,12 @@ The following arguments are supported:
   or simply `projects/{project}/locations/{location}/namespaces/{namespace_id}`
   Ignored for `public` visibility zones.
 
+<a name="nested_cloud_logging_config"></a>The `cloud_logging_config` block supports:
+
+* `enable_logging` -
+  (Required)
+  If set, enable query logging for this ManagedZone. False by default, making logging opt-in.
+
 ## Attributes Reference
 
 In addition to the arguments listed above, the following computed attributes are exported:
@@ -456,4 +582,4 @@ $ terraform import google_dns_managed_zone.default {{name}}
 
 ## User Project Overrides
 
-This resource supports [User Project Overrides](https://www.terraform.io/docs/providers/google/guides/provider_reference.html#user_project_override).
+This resource supports [User Project Overrides](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference#user_project_override).

@@ -22,12 +22,10 @@ description: |-
 
 A Bigquery Analytics Hub data exchange
 
-~> **Warning:** This resource is in beta, and should be used with the terraform-provider-google-beta provider.
-See [Provider Versions](https://terraform.io/docs/providers/google/guides/provider_versions.html) for more details on beta resources.
 
 To get more information about DataExchange, see:
 
-* [API documentation](https://cloud.google.com/bigquery/docs/reference/analytics-hub/rest/v1beta1/projects.locations.dataExchanges)
+* [API documentation](https://cloud.google.com/bigquery/docs/reference/analytics-hub/rest/v1/projects.locations.dataExchanges)
 * How-to Guides
     * [Official Documentation](https://cloud.google.com/bigquery/docs/analytics-hub-introduction)
 
@@ -41,7 +39,6 @@ To get more information about DataExchange, see:
 
 ```hcl
 resource "google_bigquery_analytics_hub_data_exchange" "data_exchange" {
-  provider = google-beta
   location         = "US"
   data_exchange_id = "my_data_exchange"
   display_name     = "my_data_exchange"
@@ -127,4 +124,4 @@ $ terraform import google_bigquery_analytics_hub_data_exchange.default {{data_ex
 
 ## User Project Overrides
 
-This resource supports [User Project Overrides](https://www.terraform.io/docs/providers/google/guides/provider_reference.html#user_project_override).
+This resource supports [User Project Overrides](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference#user_project_override).

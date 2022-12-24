@@ -60,7 +60,18 @@ resource "google_artifact_registry_repository" "my-repo" {
   description   = "example docker repository with cmek"
   format        = "DOCKER"
   kms_key_name  = "kms-key"
+  depends_on = [
+    google_kms_crypto_key_iam_member.crypto_key
+  ]
 }
+
+resource "google_kms_crypto_key_iam_member" "crypto_key" {
+  crypto_key_id = "kms-key"
+  role          = "roles/cloudkms.cryptoKeyEncrypterDecrypter"
+  member        = "serviceAccount:service-${data.google_project.project.number}@gcp-sa-artifactregistry.iam.gserviceaccount.com"
+}
+
+data "google_project" "project" {}
 ```
 
 ## Argument Reference
@@ -171,4 +182,4 @@ $ terraform import google_artifact_registry_repository.default {{repository_id}}
 
 ## User Project Overrides
 
-This resource supports [User Project Overrides](https://www.terraform.io/docs/providers/google/guides/provider_reference.html#user_project_override).
+This resource supports [User Project Overrides](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference#user_project_override).

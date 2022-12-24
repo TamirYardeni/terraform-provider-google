@@ -165,6 +165,14 @@ func resourceComputeInstanceGroupManager() *schema.Resource {
 				Description: `The target number of running instances for this managed instance group. This value should always be explicitly set unless this resource is attached to an autoscaler, in which case it should never be set. Defaults to 0.`,
 			},
 
+			"list_managed_instances_results": {
+				Type:         schema.TypeString,
+				Optional:     true,
+				Default:      "PAGELESS",
+				ValidateFunc: validation.StringInSlice([]string{"PAGELESS", "PAGINATED"}, false),
+				Description:  `Pagination behavior of the listManagedInstances API method for this managed instance group. Valid values are: "PAGELESS", "PAGINATED". If PAGELESS (default), Pagination is disabled for the group's listManagedInstances API method. maxResults and pageToken query parameters are ignored and all instances are returned in a single response. If PAGINATED, pagination is enabled, maxResults and pageToken query parameters are respected.`,
+			},
+
 			"auto_healing_policies": {
 				Type:        schema.TypeList,
 				Optional:    true,
@@ -407,16 +415,18 @@ func resourceComputeInstanceGroupManagerCreate(d *schema.ResourceData, meta inte
 
 	// Build the parameter
 	manager := &compute.InstanceGroupManager{
-		Name:                d.Get("name").(string),
-		Description:         d.Get("description").(string),
-		BaseInstanceName:    d.Get("base_instance_name").(string),
-		TargetSize:          int64(d.Get("target_size").(int)),
-		NamedPorts:          getNamedPortsBeta(d.Get("named_port").(*schema.Set).List()),
-		TargetPools:         convertStringSet(d.Get("target_pools").(*schema.Set)),
-		AutoHealingPolicies: expandAutoHealingPolicies(d.Get("auto_healing_policies").([]interface{})),
-		Versions:            expandVersions(d.Get("version").([]interface{})),
-		UpdatePolicy:        expandUpdatePolicy(d.Get("update_policy").([]interface{})),
-		StatefulPolicy:      expandStatefulPolicy(d.Get("stateful_disk").(*schema.Set).List()),
+		Name:                        d.Get("name").(string),
+		Description:                 d.Get("description").(string),
+		BaseInstanceName:            d.Get("base_instance_name").(string),
+		TargetSize:                  int64(d.Get("target_size").(int)),
+		ListManagedInstancesResults: d.Get("list_managed_instances_results").(string),
+		NamedPorts:                  getNamedPortsBeta(d.Get("named_port").(*schema.Set).List()),
+		TargetPools:                 convertStringSet(d.Get("target_pools").(*schema.Set)),
+		AutoHealingPolicies:         expandAutoHealingPolicies(d.Get("auto_healing_policies").([]interface{})),
+		Versions:                    expandVersions(d.Get("version").([]interface{})),
+		UpdatePolicy:                expandUpdatePolicy(d.Get("update_policy").([]interface{})),
+		StatefulPolicy:              expandStatefulPolicy(d),
+
 		// Force send TargetSize to allow a value of 0.
 		ForceSendFields: []string{"TargetSize"},
 	}
@@ -595,6 +605,9 @@ func resourceComputeInstanceGroupManagerRead(d *schema.ResourceData, meta interf
 	if err := d.Set("target_size", manager.TargetSize); err != nil {
 		return fmt.Errorf("Error setting target_size: %s", err)
 	}
+	if err := d.Set("list_managed_instances_results", manager.ListManagedInstancesResults); err != nil {
+		return fmt.Errorf("Error setting list_managed_instances_results: %s", err)
+	}
 	if err = d.Set("target_pools", mapStringArr(manager.TargetPools, ConvertSelfLinkToV1)); err != nil {
 		return fmt.Errorf("Error setting target_pools in state: %s", err.Error())
 	}
@@ -689,7 +702,12 @@ func resourceComputeInstanceGroupManagerUpdate(d *schema.ResourceData, meta inte
 	}
 
 	if d.HasChange("stateful_disk") {
-		updatedManager.StatefulPolicy = expandStatefulPolicy(d.Get("stateful_disk").(*schema.Set).List())
+		updatedManager.StatefulPolicy = expandStatefulPolicy(d)
+		change = true
+	}
+
+	if d.HasChange("list_managed_instances_results") {
+		updatedManager.ListManagedInstancesResults = d.Get("list_managed_instances_results").(string)
 		change = true
 	}
 
@@ -857,19 +875,22 @@ func expandAutoHealingPolicies(configured []interface{}) []*compute.InstanceGrou
 	return autoHealingPolicies
 }
 
-func expandStatefulPolicy(configured []interface{}) *compute.StatefulPolicy {
+func expandStatefulPolicy(d *schema.ResourceData) *compute.StatefulPolicy {
+	preservedState := &compute.StatefulPolicyPreservedState{}
+	stateful_disks := d.Get("stateful_disk").(*schema.Set).List()
 	disks := make(map[string]compute.StatefulPolicyPreservedStateDiskDevice)
-	for _, raw := range configured {
+	for _, raw := range stateful_disks {
 		data := raw.(map[string]interface{})
 		disk := compute.StatefulPolicyPreservedStateDiskDevice{
 			AutoDelete: data["delete_rule"].(string),
 		}
 		disks[data["device_name"].(string)] = disk
 	}
-	if len(disks) > 0 {
-		return &compute.StatefulPolicy{PreservedState: &compute.StatefulPolicyPreservedState{Disks: disks}}
-	}
-	return nil
+	preservedState.Disks = disks
+	statefulPolicy := &compute.StatefulPolicy{PreservedState: preservedState}
+	statefulPolicy.ForceSendFields = append(statefulPolicy.ForceSendFields, "PreservedState")
+
+	return statefulPolicy
 }
 
 func expandVersions(configured []interface{}) []*compute.InstanceGroupManagerVersion {
@@ -982,7 +1003,6 @@ func flattenStatefulPolicy(statefulPolicy *compute.StatefulPolicy) []map[string]
 	}
 	return result
 }
-
 func flattenUpdatePolicy(updatePolicy *compute.InstanceGroupManagerUpdatePolicy) []map[string]interface{} {
 	results := []map[string]interface{}{}
 	if updatePolicy != nil {

@@ -180,6 +180,7 @@ func resourceVertexAIDatasetCreate(d *schema.ResourceData, meta interface{}) err
 	if err != nil {
 		// The resource didn't actually create
 		d.SetId("")
+
 		return fmt.Errorf("Error waiting to create Dataset: %s", err)
 	}
 
@@ -320,14 +321,6 @@ func resourceVertexAIDatasetUpdate(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error updating Dataset %q: %s", d.Id(), err)
 	} else {
 		log.Printf("[DEBUG] Finished updating Dataset %q: %#v", d.Id(), res)
-	}
-
-	err = vertexAIOperationWaitTime(
-		config, res, project, "Updating Dataset", userAgent,
-		d.Timeout(schema.TimeoutUpdate))
-
-	if err != nil {
-		return err
 	}
 
 	return resourceVertexAIDatasetRead(d, meta)

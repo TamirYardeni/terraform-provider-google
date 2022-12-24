@@ -166,6 +166,11 @@ The following arguments are supported:
   Cloud CDN configuration for this Backend Bucket.
   Structure is [documented below](#nested_cdn_policy).
 
+* `compression_mode` -
+  (Optional)
+  Compress text responses using Brotli or gzip compression, based on the client's Accept-Encoding header.
+  Possible values are `AUTOMATIC` and `DISABLED`.
+
 * `edge_security_policy` -
   (Optional)
   The security policy associated with this backend bucket.
@@ -312,4 +317,4 @@ $ terraform import google_compute_backend_bucket.default {{name}}
 
 ## User Project Overrides
 
-This resource supports [User Project Overrides](https://www.terraform.io/docs/providers/google/guides/provider_reference.html#user_project_override).
+This resource supports [User Project Overrides](https://registry.terraform.io/providers/hashicorp/google/latest/docs/guides/provider_reference#user_project_override).

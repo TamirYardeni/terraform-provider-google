@@ -22,12 +22,10 @@ description: |-
 
 An entity type is a type of object in a system that needs to be modeled and have stored information about. For example, driver is an entity type, and driver0 is an instance of an entity type driver.
 
-~> **Warning:** This resource is in beta, and should be used with the terraform-provider-google-beta provider.
-See [Provider Versions](https://terraform.io/docs/providers/google/guides/provider_versions.html) for more details on beta resources.
 
 To get more information about FeaturestoreEntitytype, see:
 
-* [API documentation](https://cloud.google.com/vertex-ai/docs/reference/rest/v1beta1/projects.locations.featurestores.entityTypes)
+* [API documentation](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.featurestores.entityTypes)
 * How-to Guides
     * [Official Documentation](https://cloud.google.com/vertex-ai/docs)
 
@@ -36,7 +34,6 @@ To get more information about FeaturestoreEntitytype, see:
 
 ```hcl
 resource "google_vertex_ai_featurestore" "featurestore" {
-  provider = google-beta
   name     = "terraform"
   labels = {
     foo = "bar"
@@ -51,7 +48,6 @@ resource "google_vertex_ai_featurestore" "featurestore" {
 }
 
 resource "google_vertex_ai_featurestore_entitytype" "entity" {
-  provider = google-beta
   name     = "terraform"
   labels = {
     foo = "bar"
@@ -60,7 +56,60 @@ resource "google_vertex_ai_featurestore_entitytype" "entity" {
   monitoring_config {
     snapshot_analysis {
       disabled = false
+      monitoring_interval_days = 1
+      staleness_days = 21
+    }
+    numerical_threshold_config {
+      value = 0.8
+    }
+    categorical_threshold_config {
+      value = 10.0
+    }
+    import_features_analysis {
+      state = "ENABLED"
+      anomaly_detection_baseline = "PREVIOUS_IMPORT_FEATURES_STATS"
+    }
+  }
+}
+```
+## Example Usage - Vertex Ai Featurestore Entitytype With Beta Fields
+
+
+```hcl
+resource "google_vertex_ai_featurestore" "featurestore" {
+  provider = google-beta
+  name     = "terraform2"
+  labels = {
+    foo = "bar"
+  }
+  region   = "us-central1"
+  online_serving_config {
+    fixed_node_count = 2
+  }
+  encryption_spec {
+    kms_key_name = "kms-name"
+  }
+}
+
+resource "google_vertex_ai_featurestore_entitytype" "entity" {
+  provider = google-beta
+  name     = "terraform2"
+  labels = {
+    foo = "bar"
+  }
+  featurestore = google_vertex_ai_featurestore.featurestore.id
+  monitoring_config {
+    snapshot_analysis {
+      disabled = false
       monitoring_interval = "86400s"
+    }
+
+    categorical_threshold_config {
+      value = 0.3
+    }
+
+    numerical_threshold_config {
+      value = 0.3
     }
   }
 }
@@ -98,8 +147,23 @@ The following arguments are supported:
 
 * `snapshot_analysis` -
   (Optional)
-  Configuration of how features in Featurestore are monitored.
+  The config for Snapshot Analysis Based Feature Monitoring.
   Structure is [documented below](#nested_snapshot_analysis).
+
+* `import_features_analysis` -
+  (Optional)
+  The config for ImportFeatures Analysis Based Feature Monitoring.
+  Structure is [documented below](#nested_import_features_analysis).
+
+* `numerical_threshold_config` -
+  (Optional)
+  Threshold for numerical features of anomaly detection. This is shared by all objectives of Featurestore Monitoring for numerical features (i.e. Features with type (Feature.ValueType) DOUBLE or INT64).
+  Structure is [documented below](#nested_numerical_threshold_config).
+
+* `categorical_threshold_config` -
+  (Optional)
+  Threshold for categorical features of anomaly detection. This is shared by all types of Featurestore Monitoring for categorical features (i.e. Features with type (Feature.ValueType) BOOL or STRING).
+  Structure is [documented below](#nested_categorical_threshold_config).
 
 
 <a name="nested_snapshot_analysis"></a>The `snapshot_analysis` block supports:
@@ -109,9 +173,46 @@ The following arguments are supported:
   The monitoring schedule for snapshot analysis. For EntityType-level config: unset / disabled = true indicates disabled by default for Features under it; otherwise by default enable snapshot analysis monitoring with monitoringInterval for Features under it.
 
 * `monitoring_interval` -
-  (Optional)
+  (Optional, [Beta](https://terraform.io/docs/providers/google/guides/provider_versions.html))
   Configuration of the snapshot analysis based monitoring pipeline running interval. The value is rolled up to full day.
   A duration in seconds with up to nine fractional digits, terminated by 's'. Example: "3.5s".
+
+* `monitoring_interval_days` -
+  (Optional)
+  Configuration of the snapshot analysis based monitoring pipeline running interval. The value indicates number of days. The default value is 1.
+  If both FeaturestoreMonitoringConfig.SnapshotAnalysis.monitoring_interval_days and [FeaturestoreMonitoringConfig.SnapshotAnalysis.monitoring_interval][] are set when creating/updating EntityTypes/Features, FeaturestoreMonitoringConfig.SnapshotAnalysis.monitoring_interval_days will be used.
+
+* `staleness_days` -
+  (Optional)
+  Customized export features time window for snapshot analysis. Unit is one day. The default value is 21 days. Minimum value is 1 day. Maximum value is 4000 days.
+
+<a name="nested_import_features_analysis"></a>The `import_features_analysis` block supports:
+
+* `state` -
+  (Optional)
+  Whether to enable / disable / inherite default hebavior for import features analysis. The value must be one of the values below:
+  * DEFAULT: The default behavior of whether to enable the monitoring. EntityType-level config: disabled.
+  * ENABLED: Explicitly enables import features analysis. EntityType-level config: by default enables import features analysis for all Features under it.
+  * DISABLED: Explicitly disables import features analysis. EntityType-level config: by default disables import features analysis for all Features under it.
+
+* `anomaly_detection_baseline` -
+  (Optional)
+  Defines the baseline to do anomaly detection for feature values imported by each [entityTypes.importFeatureValues][] operation. The value must be one of the values below:
+  * LATEST_STATS: Choose the later one statistics generated by either most recent snapshot analysis or previous import features analysis. If non of them exists, skip anomaly detection and only generate a statistics.
+  * MOST_RECENT_SNAPSHOT_STATS: Use the statistics generated by the most recent snapshot analysis if exists.
+  * PREVIOUS_IMPORT_FEATURES_STATS: Use the statistics generated by the previous import features analysis if exists.
+
+<a name="nested_numerical_threshold_config"></a>The `numerical_threshold_config` block supports:
+
+* `value` -
+  (Required)
+  Specify a threshold value that can trigger the alert. For numerical feature, the distribution distance is calculated by Jensen–Shannon divergence. Each feature must have a non-zero threshold if they need to be monitored. Otherwise no alert will be triggered for that feature. The default value is 0.3.
+
+<a name="nested_categorical_threshold_config"></a>The `categorical_threshold_config` block supports:
+
+* `value` -
+  (Required)
+  Specify a threshold value that can trigger the alert. For categorical feature, the distribution distance is calculated by L-inifinity norm. Each feature must have a non-zero threshold if they need to be monitored. Otherwise no alert will be triggered for that feature. The default value is 0.3.
 
 ## Attributes Reference
 

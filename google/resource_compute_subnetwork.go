@@ -111,7 +111,6 @@ creation time.`,
 			"ipv6_access_type": {
 				Type:         schema.TypeString,
 				Optional:     true,
-				ForceNew:     true,
 				ValidateFunc: validateEnum([]string{"EXTERNAL", "INTERNAL", ""}),
 				Description: `The access type of IPv6 address this subnet holds. It's immutable and can only be specified during creation
 or the first time the subnet is updated into IPV4_IPV6 dual stack. If the ipv6_type is EXTERNAL then this subnet
@@ -182,6 +181,7 @@ Can only be specified if VPC flow logs for this subnetwork is enabled and "metad
 			},
 			"private_ip_google_access": {
 				Type:     schema.TypeBool,
+				Computed: true,
 				Optional: true,
 				Description: `When enabled, VMs in this subnetwork without external IP addresses can
 access Google APIs and services by using Private Google Access.`,
@@ -661,7 +661,7 @@ func resourceComputeSubnetworkUpdate(d *schema.ResourceData, meta interface{}) e
 			return err
 		}
 	}
-	if d.HasChange("private_ipv6_google_access") || d.HasChange("stack_type") {
+	if d.HasChange("private_ipv6_google_access") || d.HasChange("stack_type") || d.HasChange("ipv6_access_type") {
 		obj := make(map[string]interface{})
 
 		getUrl, err := replaceVars(d, config, "{{ComputeBasePath}}projects/{{project}}/regions/{{region}}/subnetworks/{{name}}")
@@ -692,6 +692,12 @@ func resourceComputeSubnetworkUpdate(d *schema.ResourceData, meta interface{}) e
 			return err
 		} else if v, ok := d.GetOkExists("stack_type"); !isEmptyValue(reflect.ValueOf(v)) && (ok || !reflect.DeepEqual(v, stackTypeProp)) {
 			obj["stackType"] = stackTypeProp
+		}
+		ipv6AccessTypeProp, err := expandComputeSubnetworkIpv6AccessType(d.Get("ipv6_access_type"), d, config)
+		if err != nil {
+			return err
+		} else if v, ok := d.GetOkExists("ipv6_access_type"); !isEmptyValue(reflect.ValueOf(v)) && (ok || !reflect.DeepEqual(v, ipv6AccessTypeProp)) {
+			obj["ipv6AccessType"] = ipv6AccessTypeProp
 		}
 
 		url, err := replaceVars(d, config, "{{ComputeBasePath}}projects/{{project}}/regions/{{region}}/subnetworks/{{name}}")

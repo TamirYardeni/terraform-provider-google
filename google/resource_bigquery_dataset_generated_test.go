@@ -77,6 +77,61 @@ resource "google_service_account" "bqowner" {
 `, context)
 }
 
+func TestAccBigQueryDataset_bigqueryDatasetWithMaxTimeTravelHoursExample(t *testing.T) {
+	t.Parallel()
+
+	context := map[string]interface{}{
+		"random_suffix": randString(t, 10),
+	}
+
+	vcrTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBigQueryDatasetDestroyProducer(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccBigQueryDataset_bigqueryDatasetWithMaxTimeTravelHoursExample(context),
+			},
+			{
+				ResourceName:      "google_bigquery_dataset.dataset",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func testAccBigQueryDataset_bigqueryDatasetWithMaxTimeTravelHoursExample(context map[string]interface{}) string {
+	return Nprintf(`
+resource "google_bigquery_dataset" "dataset" {
+  dataset_id                  = "tf_test_example_dataset%{random_suffix}"
+  friendly_name               = "test"
+  description                 = "This is a test description"
+  location                    = "EU"
+  default_table_expiration_ms = 3600000
+  max_time_travel_hours       = "72"
+
+  labels = {
+    env = "default"
+  }
+
+  access {
+    role          = "OWNER"
+    user_by_email = google_service_account.bqowner.email
+  }
+
+  access {
+    role   = "READER"
+    domain = "hashicorp.com"
+  }
+}
+
+resource "google_service_account" "bqowner" {
+  account_id = "bqowner%{random_suffix}"
+}
+`, context)
+}
+
 func TestAccBigQueryDataset_bigqueryDatasetAuthorizedDatasetExample(t *testing.T) {
 	t.Parallel()
 
@@ -159,6 +214,74 @@ resource "google_bigquery_dataset" "dataset" {
 
 resource "google_service_account" "bqowner" {
   account_id = "bqowner%{random_suffix}"
+}
+`, context)
+}
+
+func TestAccBigQueryDataset_bigqueryDatasetAuthorizedRoutineExample(t *testing.T) {
+	t.Parallel()
+
+	context := map[string]interface{}{
+		"service_account": getTestServiceAccountFromEnv(t),
+		"random_suffix":   randString(t, 10),
+	}
+
+	vcrTest(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckBigQueryDatasetDestroyProducer(t),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccBigQueryDataset_bigqueryDatasetAuthorizedRoutineExample(context),
+			},
+			{
+				ResourceName:      "google_bigquery_dataset.private",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func testAccBigQueryDataset_bigqueryDatasetAuthorizedRoutineExample(context map[string]interface{}) string {
+	return Nprintf(`
+resource "google_bigquery_dataset" "public" {
+  dataset_id  = "tf_test_public_dataset%{random_suffix}"
+  description = "This dataset is public"
+}
+
+resource "google_bigquery_routine" "public" {
+  dataset_id      = google_bigquery_dataset.public.dataset_id
+  routine_id      = "tf_test_public_routine%{random_suffix}"
+  routine_type    = "TABLE_VALUED_FUNCTION"
+  language        = "SQL"
+  definition_body = <<-EOS
+    SELECT 1 + value AS value
+  EOS
+  arguments {
+    name          = "value"
+    argument_kind = "FIXED_TYPE"
+    data_type     = jsonencode({ "typeKind" = "INT64" })
+  }
+  return_table_type = jsonencode({ "columns" = [
+    { "name" = "value", "type" = { "typeKind" = "INT64" } },
+  ] })
+}
+
+resource "google_bigquery_dataset" "private" {
+  dataset_id  = "tf_test_private_dataset%{random_suffix}"
+  description = "This dataset is private"
+  access {
+    role          = "OWNER"
+    user_by_email = "%{service_account}"
+  }
+  access {
+    routine {
+      project_id = google_bigquery_routine.public.project
+      dataset_id = google_bigquery_routine.public.dataset_id
+      routine_id = google_bigquery_routine.public.routine_id
+    }
+  }
 }
 `, context)
 }
